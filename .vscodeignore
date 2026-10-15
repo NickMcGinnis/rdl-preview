@@ -1,0 +1,9 @@
+**
+!package.json
+!README.md
+!CHANGELOG.md
+!LICENSE
+!dist/extension.js
+!dist/THIRD_PARTY_NOTICES.txt
+!media/**
+!examples/**

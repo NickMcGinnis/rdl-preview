@@ -1,0 +1,11 @@
+node_modules/
+dist/
+out/
+*.vsix
+.vscode-test/
+coverage/
+.DS_Store
+.env*
+*.local.json
+*.pdf
+media/pdfjs/

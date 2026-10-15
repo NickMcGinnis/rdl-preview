@@ -1,0 +1,4 @@
+{
+  "compilerOptions": { "target": "ES2022", "module": "Node16", "moduleResolution": "Node16", "lib": ["ES2022", "DOM"], "strict": true, "esModuleInterop": true, "skipLibCheck": true, "outDir": "out", "rootDir": ".", "types": ["node", "vscode"] },
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}

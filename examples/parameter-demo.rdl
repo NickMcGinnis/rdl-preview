@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2016/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <Description>Synthetic parameter and viewer smoke test. No company data or database connection.</Description>
+  <AutoRefresh>0</AutoRefresh>
+  <ReportParameters>
+    <ReportParameter Name="Department"><DataType>String</DataType><DefaultValue><Values><Value>Engineering</Value></Values></DefaultValue><Prompt>Department</Prompt><ValidValues><ParameterValues><ParameterValue><Value>Engineering</Value><Label>Engineering</Label></ParameterValue><ParameterValue><Value>Finance</Value><Label>Finance</Label></ParameterValue><ParameterValue><Value>Operations</Value><Label>Operations</Label></ParameterValue></ParameterValues></ValidValues></ReportParameter>
+    <ReportParameter Name="StartDate"><DataType>DateTime</DataType><DefaultValue><Values><Value>2026-01-01</Value></Values></DefaultValue><Prompt>Start date</Prompt></ReportParameter>
+    <ReportParameter Name="MinimumAmount"><DataType>Float</DataType><DefaultValue><Values><Value>0</Value></Values></DefaultValue><Prompt>Minimum amount</Prompt></ReportParameter>
+    <ReportParameter Name="IncludeInactive"><DataType>Boolean</DataType><DefaultValue><Values><Value>false</Value></Values></DefaultValue><Prompt>Include inactive records</Prompt></ReportParameter>
+    <ReportParameter Name="Regions"><DataType>String</DataType><MultiValue>true</MultiValue><DefaultValue><Values><Value>North</Value></Values></DefaultValue><Prompt>Regions</Prompt><ValidValues><ParameterValues><ParameterValue><Value>North</Value><Label>North</Label></ParameterValue><ParameterValue><Value>South</Value><Label>South</Label></ParameterValue><ParameterValue><Value>West</Value><Label>West</Label></ParameterValue></ParameterValues></ValidValues></ReportParameter>
+    <ReportParameter Name="Notes"><DataType>String</DataType><Nullable>true</Nullable><AllowBlank>true</AllowBlank><DefaultValue><Values><Value>Sample</Value></Values></DefaultValue><Prompt>Optional notes</Prompt></ReportParameter>
+  </ReportParameters>
+  <ReportSections><ReportSection><Body><ReportItems>
+    <Textbox Name="Title"><CanGrow>true</CanGrow><KeepTogether>true</KeepTogether><Paragraphs><Paragraph><TextRuns><TextRun><Value>RDL Preview — synthetic connection test</Value><Style><FontSize>18pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs><Top>0.2in</Top><Left>0.2in</Left><Height>0.6in</Height><Width>6.6in</Width><Style /></Textbox>
+    <Textbox Name="Parameters"><CanGrow>true</CanGrow><KeepTogether>true</KeepTogether><Paragraphs><Paragraph><TextRuns><TextRun><Value>="Department: " &amp; Parameters!Department.Value &amp; vbCrLf &amp; "Start date: " &amp; CStr(Parameters!StartDate.Value) &amp; vbCrLf &amp; "Minimum amount: " &amp; CStr(Parameters!MinimumAmount.Value) &amp; vbCrLf &amp; "Include inactive: " &amp; CStr(Parameters!IncludeInactive.Value) &amp; vbCrLf &amp; "Regions: " &amp; Join(Parameters!Regions.Value, ", ") &amp; vbCrLf &amp; "Notes: " &amp; Parameters!Notes.Value</Value><Style /></TextRun></TextRuns><Style /></Paragraph></Paragraphs><Top>1in</Top><Left>0.2in</Left><Height>2in</Height><Width>6.6in</Width><Style /></Textbox>
+  </ReportItems><Height>4in</Height><Style /></Body><Width>7in</Width><Page><PageHeight>11in</PageHeight><PageWidth>8.5in</PageWidth><LeftMargin>0.75in</LeftMargin><RightMargin>0.75in</RightMargin><TopMargin>0.75in</TopMargin><BottomMargin>0.75in</BottomMargin><Style /></Page></ReportSection></ReportSections>
+  <rd:ReportUnitType>Inch</rd:ReportUnitType>
+</Report>

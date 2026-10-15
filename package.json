@@ -1,0 +1,188 @@
+{
+  "name": "rdl-preview",
+  "displayName": "RDL Preview",
+  "description": "Preview local SSRS RDL reports with parameters and saved environment profiles.",
+  "version": "0.1.0",
+  "publisher": "NickMcGinnis",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "SSRS",
+    "RDL",
+    "reports",
+    "preview",
+    "Power BI Report Server"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NickMcGinnis/rdl-preview.git"
+  },
+  "homepage": "https://github.com/NickMcGinnis/rdl-preview#readme",
+  "bugs": {
+    "url": "https://github.com/NickMcGinnis/rdl-preview/issues"
+  },
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "extensionKind": [
+    "ui"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false
+    },
+    "virtualWorkspaces": false
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "rdlPreview.preview",
+        "title": "RDL Preview: Preview Report"
+      },
+      {
+        "command": "rdlPreview.manageProfiles",
+        "title": "RDL Preview: Manage Connections"
+      },
+      {
+        "command": "rdlPreview.switchProfile",
+        "title": "RDL Preview: Switch Environment"
+      },
+      {
+        "command": "rdlPreview.testConnection",
+        "title": "RDL Preview: Test Connection"
+      },
+      {
+        "command": "rdlPreview.demo",
+        "title": "RDL Preview: Open Demo Report"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "rdlPreview.preview",
+          "when": "resourceExtname == .rdl",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "rdlPreview.preview",
+          "when": "resourceExtname == .rdl",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "RDL Preview",
+      "properties": {
+        "rdlPreview.profiles": {
+          "type": "array",
+          "default": [],
+          "scope": "machine",
+          "markdownDescription": "Saved connections on this machine. Use **RDL Preview: Manage Connections** to edit. Passwords belong in SecretStorage, never here.",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "serverUrl",
+              "auth"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "serverUrl": {
+                "type": "string",
+                "description": "Report server URL, typically https://host/reportserver (not /reports)."
+              },
+              "auth": {
+                "type": "string",
+                "enum": [
+                  "windows",
+                  "ntlm",
+                  "basic",
+                  "demo"
+                ]
+              },
+              "username": {
+                "type": "string"
+              },
+              "catalogFolder": {
+                "type": "string",
+                "default": "/",
+                "description": "Catalog folder used to resolve relative shared report resources."
+              },
+              "parameterLanguage": {
+                "type": "string",
+                "default": "en-US"
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "minimum": 10,
+                "maximum": 600,
+                "default": 120
+              },
+              "allowHttp": {
+                "type": "boolean",
+                "default": false,
+                "description": "Explicitly permit unencrypted HTTP for this connection (never for Basic authentication)."
+              },
+              "dataSources": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "reference": {
+                      "type": "string"
+                    },
+                    "connectionString": {
+                      "type": "string"
+                    },
+                    "dataProvider": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "description": "Overrides keyed by RDL DataSource Name. Use reference OR a connectionString without credentials. Applied only to the submitted preview copy."
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "test:extension": "node scripts/test-extension.mjs",
+    "vscode:prepublish": "npm run check && npm run build",
+    "package": "vsce package",
+    "verify": "npm run check && npm test && npm run build"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.11.2",
+    "pdfjs-dist": "^6.4.299"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@types/vscode": "^1.96.0",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
