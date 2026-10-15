@@ -1,7 +1,15 @@
 # Security
 
-Keep workplace credentials, server details and reports out of public issues. Report reproducible problems with synthetic inputs. Avoid posting real authentication captures or SOAP bodies.
+## Reporting a vulnerability
 
-The extension requires a trusted workspace and sends RDL content and chosen parameter values to the selected report server. SSRS performs database access and rendering. Connection passwords use VS Code SecretStorage; execution-scoped database credentials and parameter values are held in memory. Data-source connection overrides are applied only to the submitted copy.
+Report vulnerabilities privately through [GitHub security advisories](https://github.com/NickMcGinnis/rdl-preview/security/advisories/new) rather than a public issue. Use synthetic reports and fictional hosts in reproductions; don't include real credentials, authentication captures or SOAP bodies.
 
-This is an initial testing release; use a development report server while evaluating it. HTTPS verification remains enabled, HTTP, including Basic authentication, requires explicit per-connection opt-in; Basic credentials and report data then travel unencrypted, redirects are rejected and no telemetry or cloud AI calls are added. Inline PDF preview uses bundled PDF.js assets under a restrictive webview CSP.
+## Security model
+
+- Previewing requires a trusted workspace. The RDL text and chosen parameter values are sent to the selected report server, which performs database access and rendering.
+- Connection settings are machine-scoped, so a workspace cannot redirect saved credentials to another server.
+- Connection passwords are stored in VS Code SecretStorage, keyed to the connection's server URL, authentication method and username. Database credentials requested by SSRS are used for one execution and never saved.
+- TLS certificate verification is always on and redirects are never followed. HTTP requires an explicit per-connection opt-in; with it, report data (and Basic credentials) travel unencrypted.
+- NTLM passwords are only offered to NTLM/Negotiate challenges, never Basic.
+- Credentials never appear in process arguments or generated scripts; the curl and PowerShell transports read them from stdin.
+- The PDF viewer uses bundled PDF.js under a restrictive webview CSP. The extension makes no telemetry or other network calls.

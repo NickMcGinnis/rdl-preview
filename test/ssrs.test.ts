@@ -3,10 +3,18 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import { once } from 'node:events';
 import { SsrsSession, NS } from '../src/ssrs';
-import { loopbackTransport, createTransport } from '../src/transport';
+import { createTransport, type Transport } from '../src/transport';
 import { demoPdf } from '../src/demo';
 import { parseXml, escapeXml } from '../src/xml';
 import type { Profile } from '../src/types';
+
+function loopbackTransport(): Transport {
+  return { dispose() {}, post: (url, action, body) => new Promise((resolve, reject) => {
+    const req = http.request(url, { method: 'POST', headers: { SOAPAction: `"${action}"`, 'Content-Type': 'text/xml', 'Content-Length': Buffer.byteLength(body) } }, res => {
+      const chunks: Buffer[] = []; res.on('data', b => chunks.push(b)); res.on('end', () => resolve({ status: res.statusCode ?? 0, body: Buffer.concat(chunks).toString() }));
+    }); req.on('error', reject); req.end(body);
+  }) };
+}
 
 const info = `<ExecutionID>fixture-session</ExecutionID><Parameters><ReportParameter><Name>Department</Name><Type>String</Type><Nullable>false</Nullable><AllowBlank>false</AllowBlank><MultiValue>false</MultiValue><Prompt>Department</Prompt><PromptUser>true</PromptUser><ValidValues><ValidValue><Label>Research &amp; Development</Label><Value>R&amp;D</Value></ValidValue></ValidValues><State>HasValidValue</State></ReportParameter><ReportParameter><Name>Regions</Name><Type>String</Type><MultiValue>true</MultiValue><PromptUser>true</PromptUser><Dependencies><string>Department</string></Dependencies><State>HasValidValue</State></ReportParameter></Parameters>`;
 const wrap = (method: string, body: string) => `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Header><ExecutionHeader xmlns="${NS}"><ExecutionID>fixture-session</ExecutionID></ExecutionHeader></soap:Header><soap:Body><${method}Response xmlns="${NS}">${body}</${method}Response></soap:Body></soap:Envelope>`;

@@ -7,5 +7,4 @@ await build({ entryPoints: ['test/extension-host.ts'], bundle: true, outfile: 'd
 const executable = process.env.VSCODE_EXECUTABLE_PATH;
 const temp = await mkdtemp(path.join(os.tmpdir(), 'rdl-test-'));
 try { await runTests({ extensionDevelopmentPath: process.cwd(), extensionTestsPath: path.resolve('dist/extension-test.cjs'), ...(executable ? { vscodeExecutablePath: executable } : { version: 'stable' }), launchArgs: ['--disable-workspace-trust', '--disable-extensions', '--skip-welcome', '--skip-release-notes', '--disable-updates', '--disable-telemetry', '--user-data-dir=' + path.join(temp, 'user'), '--extensions-dir=' + path.join(temp, 'extensions')] });
-
 } finally { await rm(temp, { recursive: true, force: true }); }

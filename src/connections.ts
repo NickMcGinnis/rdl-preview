@@ -3,6 +3,7 @@ import { randomUUID, createHash } from 'node:crypto';
 import { validateProfile } from './profiles';
 import type { AuthMode, Profile } from './types';
 
+const usesPassword = (p: Profile): boolean => p.auth === 'basic' || p.auth === 'ntlm';
 const secretKey = (p: Profile): string => `connection:${p.id}:${createHash('sha256').update(JSON.stringify([p.auth, p.serverUrl, p.username || ''])).digest('hex')}`;
 
 export const DEMO_PROFILE: Profile = { id: 'demo', name: 'Demo (simulated)', auth: 'demo', serverUrl: '', catalogFolder: '/', parameterLanguage: 'en-US' };
@@ -41,7 +42,7 @@ export class Connections {
     await this.select(selected.profile); return selected.profile;
   }
   async password(profile: Profile): Promise<string | undefined> {
-    if (!['basic', 'ntlm'].includes(profile.auth)) return;
+    if (!usesPassword(profile)) return;
     const key = secretKey(profile);
     let password = await this.context.secrets.get(key);
     if (password === undefined) {
@@ -58,18 +59,21 @@ export class Connections {
       await vscode.commands.executeCommand('workbench.action.openSettings', 'rdlPreview.profiles'); return;
     }
     const selected = await vscode.window.showQuickPick([
-      { label: '$(add) Add connection', profile: undefined },
+      { label: '$(add) Add connection', action: 'add' },
       ...profiles.map(profile => ({ label: profile.name, description: profile.serverUrl, profile })),
-      { label: '$(settings-gear) Edit advanced settings', profile: undefined }
+      { label: '$(settings-gear) Edit advanced settings', action: 'settings' }
     ], { title: 'RDL Preview — manage connections' });
     if (!selected) return;
-    if (selected.label.includes('advanced')) { await vscode.commands.executeCommand('workbench.action.openSettings', 'rdlPreview.profiles'); return; }
-    if (!selected.profile) { await this.edit(); return; }
+    if (!('profile' in selected)) {
+      if (selected.action === 'settings') await vscode.commands.executeCommand('workbench.action.openSettings', 'rdlPreview.profiles');
+      else await this.edit();
+      return;
+    }
     const p = selected.profile;
     const action = await vscode.window.showQuickPick(['Edit connection', 'Set or replace password', 'Edit data-source overrides and advanced settings', 'Delete connection'], { title: p.name });
     if (action === 'Edit connection') await this.edit(p);
     else if (action === 'Set or replace password') {
-      if (!['basic', 'ntlm'].includes(p.auth)) { await vscode.window.showInformationMessage('This connection uses your current identity and has no saved password.'); return; }
+      if (!usesPassword(p)) { await vscode.window.showInformationMessage('This connection uses your current identity and has no saved password.'); return; }
       const password = await vscode.window.showInputBox({ title: `Password for ${p.name}`, prompt: `Replace password for ${p.username}`, password: true, ignoreFocusOut: true });
       if (password !== undefined) await this.context.secrets.store(secretKey(p), password);
     } else if (action?.startsWith('Edit data-source')) await vscode.commands.executeCommand('workbench.action.openSettings', 'rdlPreview.profiles');

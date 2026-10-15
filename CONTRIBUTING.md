@@ -1,7 +1,9 @@
 # Contributing
 
-Use Node.js 24 LTS, run `npm ci`, then `npm run verify` and `npm run test:extension` before opening a pull request. Use synthetic RDL files and fictional hosts in tests, issues and screenshots. Keep domain credentials, internal URLs, business reports and PDFs out of the repository.
+Use Node.js 24, run `npm ci`, and make sure `npm run verify` and `npm run test:extension` pass before opening a pull request.
 
-The extension has no local SSRS engine. Protocol fixtures and demo output cannot establish compatibility with a live report server. Describe the exact evidence for server or authentication changes, including a sanitized version/OS/authentication matrix.
+Use synthetic RDL files and fictional hosts in tests, issues and screenshots. Don't commit credentials, internal URLs, real reports or PDFs.
 
-Keep edits to the original RDL separate from preview preparation. Do not introduce automatic publishing, TLS bypasses, request/credential logging or persistence of report data. Any new authentication method must keep secrets out of settings, process arguments and generated scripts.
+The fixture tests can't prove compatibility with a real report server. For changes to authentication or server behavior, say which SSRS/PBIRS versions, operating systems and auth methods you tested against.
+
+Please don't add automatic publishing, TLS bypasses, logging of requests or credentials, or persistence of report data. New authentication methods must keep secrets out of settings, process arguments and generated scripts.

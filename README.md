@@ -1,45 +1,42 @@
 # RDL Preview
 
-Edit SSRS reports with Copilot in VS Code, enter parameters, and preview a server-rendered PDF beside the RDL.
+Preview SSRS reports in VS Code: enter parameters and see the server-rendered PDF beside the RDL.
 
-RDL Preview is an MIT-licensed VS Code desktop extension. It submits the local report definition to the SSRS execution service, runs a temporary execution, and displays the returned PDF. It does not publish a permanent report or modify your source file.
+RDL Preview submits the open report definition to the SSRS execution service as a temporary execution and displays the returned PDF. Nothing is published to the server and the source file is never modified.
 
-**v0.1.1 is a testing release.** Local SOAP fixture tests, a VS Code extension-host smoke test and the PDF viewer are verified. Authentication and rendering against a live SSRS/PBIRS installation still require workplace acceptance testing. Demo mode generates an explicitly simulated PDF and does not render RDL.
+> **Status:** early testing release. The protocol is covered by local fixture tests, but authentication and rendering have not yet been verified against many live SSRS/PBIRS installations. See [manual testing](docs/MANUAL-TESTING.md).
 
 ## Install
 
-1. Download `rdl-preview-0.1.1.vsix` from [GitHub Releases](https://github.com/NickMcGinnis/rdl-preview/releases).
-2. In VS Code, open Extensions → **… → Install from VSIX…** and select the file.
-3. Run **RDL Preview: Open Demo Report** from the Command Palette to try parameter entry and PDF display without a server.
-
-Alternatively:
+Download `rdl-preview-0.1.1.vsix` from [GitHub Releases](https://github.com/NickMcGinnis/rdl-preview/releases), then either use Extensions → **… → Install from VSIX…** or run:
 
 ```sh
 code --install-extension rdl-preview-0.1.1.vsix
 ```
 
-VS Code 1.96 or later is required. Installation from GitHub does not require a Marketplace account. Follow your organization's software installation rules on managed laptops.
+Requires VS Code 1.96 or later. Run **RDL Preview: Open Demo Report** to try the parameter panel and PDF viewer without a server.
 
 ## Preview a report
 
 1. Open an `.rdl` file in a trusted workspace.
-2. Run **RDL Preview: Manage Connections**, add an environment, and configure its report-server URL and authentication.
-3. Select **RDL Preview: Test Connection** to check that the execution endpoint responds.
-4. Run **RDL Preview: Preview Report**, or use the editor title / file context-menu command.
-5. Supply report parameters and click **Render preview**.
-6. Change values and render again. After editing the RDL, run **Preview Report** again to submit its latest in-memory contents, including unsaved edits.
+2. Run **RDL Preview: Manage Connections** and add a connection.
+3. Run **RDL Preview: Test Connection** to check the execution endpoint responds.
+4. Run **RDL Preview: Preview Report** (also in the editor title bar and the file context menu).
+5. Fill in parameters and click **Render preview**.
 
-The panel supports String, Integer, Float, Boolean and DateTime parameters, available-value lists, defaults, multiple values, nulls and blank strings. Use ISO dates such as `2026-10-15` or `2026-10-15T09:30:00`. Free-form multi-value inputs use one value per line; listed multi-value inputs support the platform's usual Ctrl/Cmd-click and keyboard selection. Changing an upstream parameter refreshes dependent choices; **Refresh choices** is also available. Hidden/internal parameters use server metadata and defaults rather than appearing as editable fields.
+Parameters can be changed and re-rendered in place. After editing the RDL, run **Preview Report** again; unsaved edits are included.
 
-PDF controls include page navigation, zoom and **Save PDF**. The inline preview is a visual canvas; save the PDF and use an accessible PDF reader for text search, selection and screen-reader navigation.
+Supported parameter types are String, Integer, Float, Boolean and DateTime, including available-value lists, defaults, multiple values, null and blank. Enter dates as `2026-10-15` or `2026-10-15T09:30:00`, and free-form multi-value parameters one value per line. Changing an upstream parameter refreshes dependent choices. Hidden parameters use their server defaults.
 
-## Saved environments
+The viewer supports page navigation, zoom and **Save PDF**. The inline preview is a canvas, so save the PDF to search or select text or to use a screen reader.
 
-The status-bar item **RDL: Development** shows the selected environment. Click it or run **Switch Environment** to choose another connection. A change invalidates the previous execution; run **Preview Report** again. Existing PDFs remain labeled with the environment that produced them.
+## Connections
 
-Use **Manage Connections** to add, edit or delete connections and replace saved passwords. **Edit advanced settings** opens the machine-specific `rdlPreview.profiles` setting. These settings are excluded from VS Code Settings Sync. Passwords are encrypted using VS Code SecretStorage and are not synced. Parameter values stay in session memory, separately for each report and environment, and are cleared when connection settings change or VS Code restarts.
+The status bar shows the active connection; click it or run **Switch Environment** to change it. Switching invalidates the current execution, so run **Preview Report** again.
 
-Example user settings (illustrative hosts and paths):
+**Manage Connections** adds, edits and deletes connections and replaces saved passwords. **Edit advanced settings** opens the `rdlPreview.profiles` setting, which is machine-scoped and not synced. Passwords are stored in VS Code SecretStorage. Parameter values are remembered per report and connection until VS Code restarts or connection settings change.
+
+Example settings:
 
 ```json
 {
@@ -50,8 +47,6 @@ Example user settings (illustrative hosts and paths):
       "serverUrl": "https://reports-dev.example.com/reportserver",
       "auth": "windows",
       "catalogFolder": "/Finance/Reports",
-      "parameterLanguage": "en-US",
-      "timeoutSeconds": 120,
       "dataSources": {
         "Main": { "reference": "/Data Sources/Development" }
       }
@@ -62,33 +57,34 @@ Example user settings (illustrative hosts and paths):
       "serverUrl": "https://reports-qa.example.com/reportserver",
       "auth": "ntlm",
       "username": "DOMAIN\\reportdeveloper",
-      "catalogFolder": "/Finance/Reports",
-      "dataSources": {
-        "Main": { "reference": "/Data Sources/QA" }
-      }
+      "catalogFolder": "/Finance/Reports"
     }
   ]
 }
 ```
 
+Optional fields: `parameterLanguage` (default `en-US`), `timeoutSeconds` (10–600, default 120) and `allowHttp`.
+
 ### Authentication
 
 | Method | Windows | macOS / Linux |
 | --- | --- | --- |
-| `windows` | Current Windows identity through the bundled PowerShell HTTP helper | System `/usr/bin/curl` with SPNEGO and an existing, valid Kerberos ticket |
-| `ntlm` | Explicit credentials through the Windows helper | System `/usr/bin/curl` with NTLM support |
-| `basic` | Node HTTP(S); HTTP requires per-connection opt-in | Node HTTP(S); HTTP requires per-connection opt-in |
+| `windows` | Current Windows identity via the bundled PowerShell helper | `/usr/bin/curl` with SPNEGO and an existing Kerberos ticket |
+| `ntlm` | Explicit credentials via the PowerShell helper | `/usr/bin/curl` with NTLM |
+| `basic` | Node HTTP(S) | Node HTTP(S) |
 | `demo` | Simulated local output | Simulated local output |
 
-Windows requires Windows PowerShell 5.1 and permission to run the bundled `media/request.ps1`. The extension does not bypass PowerShell execution policy. macOS includes curl; Linux needs a compatible curl at `/usr/bin/curl`. The extension does not acquire Kerberos tickets, change domain settings or configure delegation. Basic authentication must already be enabled on SSRS. Corporate proxy / authentication combinations may need additional work; report reproducible failures using sanitized details.
+On Windows, the helper needs Windows PowerShell 5.1 and an execution policy that allows the bundled `media/request.ps1`; the extension does not bypass execution policy. The extension does not acquire Kerberos tickets. Basic must already be enabled on the server.
 
-Use the service URL, normally `/reportserver`, not the `/reports` web portal. HTTPS certificates must be trusted; certificate verification remains enabled. HTTP is supported for all authentication methods after an explicit per-connection opt-in. For Basic authentication, the warning also explains that the username and password travel without encryption. To use a legacy HTTP-only SSRS server, choose Basic, enter its `http://host/reportserver` URL, and select **Allow HTTP for this connection** when prompted. This saves `allowHttp: true` for that profile. Report definitions, parameters and PDF data also travel without TLS. Redirects are rejected rather than forwarding credentials to a different endpoint.
+Use the service URL (normally `/reportserver`), not the `/reports` web portal. Certificates must be trusted. Redirects are rejected rather than followed.
 
-### Database connections and shared resources
+HTTP URLs require an explicit opt-in: when you enter an `http://` URL, a warning explains that report data (and, for Basic, the username and password) will travel unencrypted, and choosing **Allow HTTP for this connection** saves `allowHttp: true` on that connection.
 
-The extension connects to SSRS; SSRS connects to the report database. Prefer existing server-side shared data sources with their configured credentials. When the execution service requests data-source credentials, the extension prompts for each username and password and submits all of them together. Those database credentials are used for that execution only and are not saved.
+### Data sources and shared resources
 
-The `dataSources` object is keyed by the RDL's **DataSource Name**, not its SQL database name. An override can use a shared `reference` **or** an embedded `connectionString`, with an optional `dataProvider`:
+The extension talks to SSRS; SSRS talks to the database. Server-side shared data sources with stored credentials work best. If SSRS asks for data-source credentials, you are prompted for each one; they are used for that execution only and not saved.
+
+`dataSources` is keyed by the RDL's DataSource `Name`. Each override is either a shared `reference` or a `connectionString`, with an optional `dataProvider`:
 
 ```json
 "dataSources": {
@@ -99,39 +95,41 @@ The `dataSources` object is keyed by the RDL's **DataSource Name**, not its SQL 
 }
 ```
 
-Connection strings in settings must not contain user IDs, passwords or access tokens. Existing embedded connection properties, including integrated security, are preserved when changing the connection string. Switching an embedded source to a shared source, or vice versa, replaces that source's connection definition only in the submitted copy. Other report XML is preserved.
+Connection strings must not contain user IDs, passwords or access tokens. Overrides apply only to the copy sent to the server; the rest of the report XML is untouched.
 
-Relative shared data-source, shared dataset and subreport paths are resolved against `catalogFolder`, because temporary SSRS executions require absolute catalog references. Provide explicit source mappings when your Visual Studio project paths differ from deployed paths. Changing the SSRS URL alone does not change an embedded database connection.
+Temporary executions need absolute catalog paths, so relative shared data source, shared dataset and subreport references are resolved against `catalogFolder`.
 
-## Server requirements and limitations
+## Limitations
 
-- The account must be allowed to use `LoadReportDefinition`: SSRS requires the system-level **ExecuteReportDefinition** permission and appropriate access to referenced resources. A working **Test Connection** is not proof of these permissions.
-- Referenced data sources, shared datasets, subreports and custom assemblies must already exist on the selected report server. The extension does not deploy dependencies or load project-local `.rds`/`.rsd` files.
-- This release uses the `ReportExecution2005.asmx` SOAP execution API. SSRS/PBIRS configurations, versions, authentication and report compatibility require real-server testing. Power BI Service cloud endpoints and `.pbix` reports are outside scope.
-- PDF output comes from the server's fonts, renderer, data providers and database access. There is no local SSRS renderer or visual RDL designer.
-- Requests default to a 120-second timeout (configurable 10–600 seconds). The transport response limit is 100 MB, including base64/XML overhead; very large reports need a smaller test input.
-- Closing a panel or switching environments cancels the client request. Server-side processing may continue until SSRS ends the request/session.
-- Demo mode reads basic, static RDL parameter definitions and produces a labeled fixture PDF. It does not evaluate report expressions, query-backed choices or SQL.
+- The account needs the system-level **ExecuteReportDefinition** permission. Test Connection does not check it.
+- Shared data sources, shared datasets, subreports and custom assemblies must already be deployed. Project-local `.rds`/`.rsd` files are not used.
+- Uses the `ReportExecution2005.asmx` SOAP API. Power BI Service and `.pbix` reports are out of scope.
+- Rendering uses the server's fonts and renderer; there is no local renderer or designer.
+- Responses are limited to 100 MB, including base64/XML overhead.
+- Closing the panel cancels the client request, but the server may keep processing until it finishes.
+- Demo mode reads static parameter definitions and produces a labeled placeholder PDF. It does not evaluate expressions, run queries or render the report.
 
 ## Development
 
-Use Node.js 24 LTS and npm. No SSRS instance is needed for local tests.
+Requires Node.js 24 and npm. Tests don't need an SSRS server.
 
 ```sh
 npm ci
-npm run verify
-npm run test:extension
+npm run verify          # type check, unit tests, build
+npm run test:extension  # VS Code extension-host test
 npm run package
 ```
 
-Press **F5** in VS Code to launch an Extension Development Host. The extension-host test downloads an official VS Code build and uses an isolated temporary user profile; Linux needs a graphical session, or `xvfb-run -a npm run test:extension`. Set `VSCODE_EXECUTABLE_PATH` to reuse an existing VS Code executable. To inspect the exact webview in a local browser, run `node --import tsx scripts/ui-harness.mts` after building.
+Press **F5** to launch an Extension Development Host. The extension-host test downloads VS Code and uses a temporary profile; on Linux run it under `xvfb-run -a`, and set `VSCODE_EXECUTABLE_PATH` to reuse an existing install. To open the webview in a browser, build and then run `node --import tsx scripts/ui-harness.mts`.
 
-See [work-laptop acceptance testing](docs/WORK-LAPTOP-TESTING.md), [architecture](docs/ARCHITECTURE.md), and [validation](docs/VALIDATION.md). CI runs checks on macOS, Windows and Linux and creates a VSIX artifact. A downloaded package contains compiled code and local PDF.js assets; Node.js is not required to install or use it.
+See also [architecture](docs/ARCHITECTURE.md) and [manual testing](docs/MANUAL-TESTING.md).
 
-## Privacy and license
+## Privacy
 
-The extension adds no telemetry, AI calls, cloud storage or external assets. Live requests go to the configured SSRS server; the PDF viewer's scripts, fonts and worker ship in the package. Demo mode makes no network requests. No report XML, parameter values or credentials are logged by the extension. Server errors are shown in the local panel and can contain database or report details; sanitize them before posting an issue. Work reports and credentials should stay on the work machine.
+No telemetry. The only network requests go to your configured report server; PDF.js, its fonts and worker ship in the package. Report XML, parameter values and credentials are not logged. Server error messages may include database or report details, so sanitize them before posting an issue.
 
-MIT for this repository's code. PDF.js is Apache-2.0; bundled XML dependencies retain their licenses. Packaged third-party notices are included in `dist/THIRD_PARTY_NOTICES.txt` and `media/pdfjs/LICENSE`.
+## License
 
-Protocol references: [temporary report execution](https://learn.microsoft.com/en-us/dotnet/api/reportexecution2005.reportexecutionservice.loadreportdefinition?view=sqlserver-2016), [parameter validation](https://learn.microsoft.com/en-us/dotnet/api/reportexecution2005.reportexecutionservice.setexecutionparameters?view=sqlserver-2016), [execution credentials](https://learn.microsoft.com/en-us/dotnet/api/reportexecution2005.reportexecutionservice.setexecutioncredentials?view=sqlserver-2016), [rendering](https://learn.microsoft.com/en-us/dotnet/api/reportexecution2005.reportexecutionservice.render?view=sqlserver-2016).
+MIT. PDF.js is Apache-2.0; other bundled dependencies keep their own licenses. Notices ship in `dist/THIRD_PARTY_NOTICES.txt` and `media/pdfjs/LICENSE`.
+
+SSRS API references: [LoadReportDefinition](https://learn.microsoft.com/en-us/dotnet/api/reportexecution2005.reportexecutionservice.loadreportdefinition?view=sqlserver-2016), [SetExecutionParameters](https://learn.microsoft.com/en-us/dotnet/api/reportexecution2005.reportexecutionservice.setexecutionparameters?view=sqlserver-2016), [SetExecutionCredentials](https://learn.microsoft.com/en-us/dotnet/api/reportexecution2005.reportexecutionservice.setexecutioncredentials?view=sqlserver-2016), [Render](https://learn.microsoft.com/en-us/dotnet/api/reportexecution2005.reportexecutionservice.render?view=sqlserver-2016).

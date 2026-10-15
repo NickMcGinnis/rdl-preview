@@ -10,7 +10,7 @@ import { webviewHtml } from './webview';
 import type { Connections } from './connections';
 import type { ExecutionInfo, ParameterValues, Profile, ReportSession } from './types';
 
-export interface PreviewSnapshot { report: string; profile: string; demo: boolean; parameterNames: string[]; pdfBytes: number; pdfPages: number; viewerReady: boolean; viewerStage: string; viewerError: string; invalidated: boolean }
+export interface PreviewSnapshot { report: string; profile: string; demo: boolean; parameterNames: string[]; pdfBytes: number; pdfPages: number; viewerReady: boolean; viewerError: string; invalidated: boolean }
 export class Preview {
   private readonly panel: vscode.WebviewPanel;
   private readonly session: ReportSession;
@@ -20,8 +20,7 @@ export class Preview {
   private loaded = false;
   private viewerReady = false;
   private pdfPages = 0;
-  private viewerStage = 'starting';
-  private viewerError = ''; 
+  private viewerError = '';
   private busy = false;
   private disposed = false;
   private invalidated = false;
@@ -35,9 +34,8 @@ export class Preview {
     });
     this.panel.webview.html = this.html();
     this.subscriptions.push(this.panel.onDidDispose(() => { this.disposed = true; this.session.dispose(); for (const sub of this.subscriptions) sub.dispose(); }), this.panel.webview.onDidReceiveMessage(message => {
-      if (message?.type === 'ready') { this.viewerReady = true; this.viewerStage = 'ready'; this.postState(); if (this.pdf) this.postPdf(); }
-      else if (message?.type === 'viewerStatus' && typeof message.stage === 'string') this.viewerStage = message.stage;
-      else if (message?.type === 'pdfDisplayed' && Number.isInteger(message.pages) && message.pages > 0) { this.pdfPages = message.pages; this.viewerStage = 'displayed'; this.viewerError = ''; }
+      if (message?.type === 'ready') { this.viewerReady = true; this.postState(); if (this.pdf) this.postPdf(); }
+      else if (message?.type === 'pdfDisplayed' && Number.isInteger(message.pages) && message.pages > 0) { this.pdfPages = message.pages; this.viewerError = ''; }
       else if (message?.type === 'pdfError' && typeof message.error === 'string') { this.viewerError = message.error.slice(0, 1000); }
       else if (message?.type === 'render' || message?.type === 'refresh') {
         void this.submit(message.values, message.type === 'render').catch(error => this.fail(error));
@@ -51,7 +49,7 @@ export class Preview {
     await preview.initialize(); return preview;
   }
   private get key(): string { return `${this.profile.id}:${this.uri.toString()}`; }
-  snapshot(): PreviewSnapshot { return { report: path.basename(this.uri.fsPath), profile: this.profile.name, demo: this.profile.auth === 'demo', parameterNames: this.info?.parameters.map(p => p.name) || [], pdfBytes: this.pdf?.length || 0, pdfPages: this.pdfPages, viewerReady: this.viewerReady, viewerStage: this.viewerStage, viewerError: this.viewerError, invalidated: this.invalidated }; }
+  snapshot(): PreviewSnapshot { return { report: path.basename(this.uri.fsPath), profile: this.profile.name, demo: this.profile.auth === 'demo', parameterNames: this.info?.parameters.map(p => p.name) || [], pdfBytes: this.pdf?.length || 0, pdfPages: this.pdfPages, viewerReady: this.viewerReady, viewerError: this.viewerError, invalidated: this.invalidated }; }
   dispose(): void { this.panel.dispose(); }
   invalidate(): void {
     this.invalidated = true; this.session.dispose();
@@ -61,7 +59,7 @@ export class Preview {
   private async initialize(): Promise<void> {
     this.busy = true; this.postState();
     try {
-      // Use the in-memory document so Copilot edits need not be saved first.
+      // Read the open document so unsaved edits are included.
       const document = await vscode.workspace.openTextDocument(this.uri);
       const rdl = prepareRdl(document.getText(), this.profile);
       this.info = await this.session.load(rdl);

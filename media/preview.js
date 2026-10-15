@@ -147,19 +147,18 @@ window.addEventListener('message', async event => {
   const message = event.data;
   if (message.type === 'state') update(message);
   else if (message.type === 'pdf') {
-    vscode.postMessage({ type: 'viewerStatus', stage: 'pdf-received' });
     try {
       if (pdfLoading) await pdfLoading.destroy();
       const binary = atob(message.base64), data = Uint8Array.from(binary, c => c.charCodeAt(0));
       const base = new URL('./pdfjs/', import.meta.url).href;
       await workerReady;
       pdfLoading = pdfjs.getDocument({ data, useWorkerFetch: false, standardFontDataUrl: base + 'standard_fonts/', cMapUrl: base + 'cmaps/', cMapPacked: true, wasmUrl: base + 'wasm/', isEvalSupported: false });
-      vscode.postMessage({ type: 'viewerStatus', stage: 'loading-pdf' });
       pdfDocument = await pdfLoading.promise;
-      vscode.postMessage({ type: 'viewerStatus', stage: 'pdf-loaded' });
       currentPage = 1; await draw();
-    } catch (error) { $('render-status').textContent = `PDF display failed: ${error.message}. Use Save PDF to view it externally.`;
-    vscode.postMessage({ type: 'pdfError', error: error.message }); }
+    } catch (error) {
+      $('render-status').textContent = `PDF display failed: ${error.message}. Use Save PDF to view it externally.`;
+      vscode.postMessage({ type: 'pdfError', error: error.message });
+    }
   }
 });
 vscode.postMessage({ type: 'ready' });

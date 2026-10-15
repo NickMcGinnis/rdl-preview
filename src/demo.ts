@@ -36,12 +36,12 @@ export class DemoSession implements ReportSession {
   }
   private info(): ExecutionInfo {
     const errors = validateValues(this.parameters, this.values);
-    return { id: 'demo', parameters: this.parameters.map(p => ({ ...p, defaults: this.values[p.name] || [], state: errors[p.name] ? 'MissingValidValue' : 'HasValidValue' })), credentialsRequired: false, dataSourcePrompts: [], warnings: ['Demo output is simulated. No RDL rendering, SQL execution or SSRS connection has been tested.'] };
+    return { id: 'demo', parameters: this.parameters.map(p => ({ ...p, defaults: this.values[p.name] || [], state: errors[p.name] ? 'MissingValidValue' : 'HasValidValue' })), credentialsRequired: false, dataSourcePrompts: [], warnings: ['Demo output is simulated: the RDL is not rendered and no queries run.'] };
   }
   async setParameters(values: ParameterValues): Promise<ExecutionInfo> { this.values = { ...this.values, ...values }; return this.info(); }
   async setCredentials(_credentials: DataSourceCredential[]): Promise<ExecutionInfo> { return this.info(); }
   async render(): Promise<Uint8Array> {
     if (Object.keys(validateValues(this.parameters, this.values)).length) throw new Error('Complete all required parameters before rendering.');
-    return demoPdf(['No SSRS server was contacted. This is a viewer and parameter-entry demo.', 'It does not establish that this RDL runs or renders correctly on SSRS.', '', ...Object.entries(this.values).map(([name, values]) => `${name}: ${values.map(v => v === null ? '(null)' : v).join(', ')}`)]);
+    return demoPdf(['No SSRS server was contacted. This page only lists the submitted parameter values.', '', ...Object.entries(this.values).map(([name, values]) => `${name}: ${values.map(v => v === null ? '(null)' : v).join(', ')}`)]);
   }
 }

@@ -10,7 +10,7 @@ export function runProcess(executable: string, args: string[], input: string, ti
   return new Promise((resolve, reject) => {
     if (signal.aborted) { reject(new Error('Request cancelled.')); return; }
     const child = spawn(executable, args, { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'], shell: false });
-    const output: Buffer[] = [], errors: Buffer[] = [];
+    const output: Buffer[] = [];
     let size = 0, finished = false;
     const finish = (error?: Error) => {
       if (finished) return;
@@ -22,9 +22,9 @@ export function runProcess(executable: string, args: string[], input: string, ti
     signal.addEventListener('abort', cancel, { once: true });
     child.on('error', () => finish(new Error(`Could not start ${path.basename(executable)}. Install the required system transport or choose another authentication method.`)));
     child.stdout.on('data', (b: Buffer) => { size += b.length; if (size > MAX_BYTES) finish(new Error('The response exceeds the 100 MB preview limit.')); else output.push(b); });
-    child.stderr.on('data', (b: Buffer) => { if (errors.reduce((n, v) => n + v.length, 0) < 8192) errors.push(b); });
+    // Drain but never surface stderr: it can contain credentials or server content.
+    child.stderr.resume();
     child.on('close', code => {
-      // Do not surface transport stderr: it can contain credentials or server content.
       if (code !== 0) finish(new Error(`The system HTTP transport exited with code ${code}. Check authentication, HTTPS certificates, connectivity and whether your organization allows this transport.`));
       else finish();
     });
@@ -62,7 +62,7 @@ export function createTransport(profile: Profile, password: string | undefined, 
             const chunks: Buffer[] = []; let bytes = 0;
             response.on('data', (b: Buffer) => { bytes += b.length; if (bytes > MAX_BYTES) req.destroy(new Error('Response exceeds the 100 MB preview limit.')); else chunks.push(b); });
             response.on('end', () => { clearTimeout(timer); resolve({ status: response.statusCode ?? 0, body: Buffer.concat(chunks).toString('utf8') }); });
-            response.on('error', reject);
+            response.on('error', error => { clearTimeout(timer); reject(error); });
           });
           const timer = setTimeout(() => req.destroy(new Error('SSRS request timed out.')), timeoutMs);
           req.on('error', error => { clearTimeout(timer); reject(new Error(`HTTP(S) request failed (${(error as NodeJS.ErrnoException).code || 'network error'}). Check connectivity, certificate trust and authentication.`)); });
@@ -81,15 +81,4 @@ export function createTransport(profile: Profile, password: string | undefined, 
       return { status, body: raw.slice(0, split) };
     }
   };
-}
-// Test-only HTTP transport. Never selected by a live profile.
-export function loopbackTransport(): Transport {
-  const controller = new AbortController();
-  return { dispose: () => controller.abort(), post: (url, action, body) => new Promise((resolve, reject) => {
-    const u = new URL(url);
-    if (u.hostname !== '127.0.0.1') { reject(new Error('Fixture transport only accepts loopback.')); return; }
-    const req = http.request(u, { method: 'POST', signal: controller.signal, headers: { SOAPAction: `"${action}"`, 'Content-Type': 'text/xml', 'Content-Length': Buffer.byteLength(body) } }, res => {
-      const chunks: Buffer[] = []; res.on('data', b => chunks.push(b)); res.on('end', () => resolve({ status: res.statusCode ?? 0, body: Buffer.concat(chunks).toString() }));
-    }); req.on('error', reject); req.end(body);
-  }) };
 }

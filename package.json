@@ -28,7 +28,7 @@
   },
   "main": "./dist/extension.js",
   "activationEvents": [
-    "onStartupFinished"
+    "workspaceContains:**/*.rdl"
   ],
   "extensionKind": [
     "ui"

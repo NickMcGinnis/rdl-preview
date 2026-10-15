@@ -1,19 +1,38 @@
 # Architecture
 
-`extension.ts` registers commands and owns one preview. `connections.ts` manages machine settings, encrypted connection passwords and the workspace's selected profile. `preview.ts` owns the execution, parameter state and webview messages. `ssrs.ts` implements SOAP envelopes and SSRS execution metadata. `transport.ts` sends authenticated requests. `rdl.ts` selectively edits the preview copy. `parameters.ts` validates values and invalidates dependencies. `demo.ts` supplies an explicitly simulated local workflow.
+| File | Responsibility |
+| --- | --- |
+| `extension.ts` | Registers commands and owns the current preview panel. |
+| `connections.ts` | Connection settings, saved passwords and the workspace's active connection. |
+| `preview.ts` | One execution: parameter state, webview messages and PDF hand-off. |
+| `ssrs.ts` | SOAP envelopes and decoding of SSRS execution metadata. |
+| `transport.ts` | Authenticated HTTP via Node (Basic), curl (NTLM/SPNEGO) or PowerShell (Windows). |
+| `rdl.ts` | Edits to the copy of the RDL sent to the server. |
+| `parameters.ts` | Parameter validation and dependency invalidation. |
+| `demo.ts` | Offline simulated session. |
 
-Live execution:
+## Preview flow
 
-1. Read the open document's current text; validate well-formed XML and reject DTD/entity declarations.
-2. Resolve shared resource paths and apply profile data-source overrides to a copy.
-3. Call `LoadReportDefinition`; retain the ExecutionID for this panel only.
-4. If required, collect all execution-scoped database credentials and call `SetExecutionCredentials`.
-5. Read parameter metadata, apply defaults or remembered values and refresh server metadata via `SetExecutionParameters`.
-6. Accept edits, invalidate dependent values, refresh metadata, validate and render with `Render` in PDF format.
-7. Transfer PDF bytes to a CSP-restricted webview using local PDF.js resources. Save only when explicitly requested.
+1. Read the open document's text; reject malformed XML and DTD/entity declarations.
+2. On a copy, resolve relative catalog paths and apply the connection's data-source overrides. Edits are made by byte range so the rest of the document is unchanged.
+3. `LoadReportDefinition`, keeping the ExecutionID for this panel only.
+4. If SSRS asks for data-source credentials, prompt for them and call `SetExecutionCredentials`.
+5. Apply remembered or default values with `SetExecutionParameters` to resolve query-backed choices.
+6. On each edit, clear dependent values, refresh metadata, validate, and `Render` to PDF.
+7. Send the PDF to the webview, which draws it with the bundled PDF.js. It is written to disk only through Save PDF.
 
-Only SSRS execution APIs are implemented; no report catalog writes, permanent publishing or database client is involved. Server execution sessions expire according to SSRS policy. The extension does not issue any administrative cleanup request.
+Only execution APIs are called; nothing is written to the report catalog. Executions expire under the server's session policy.
 
-Windows authentication uses the bundled fixed PowerShell script and .NET's default or explicit credentials. Inputs travel through stdin as JSON. Other desktop platforms use system curl for NTLM/SPNEGO; its config, credentials and request body also travel through stdin, with no shell evaluation and no curl startup config. Basic uses Node HTTP(S), with an explicit per-connection opt-in required before HTTP credentials can be sent. Redirects are not followed, TLS validation remains enabled, and HTTP remains disabled unless the saved connection explicitly permits it. HTTPS proxy handling is transport-specific and is an acceptance-testing consideration.
+## Transports
 
-Passwords use VS Code SecretStorage, scoped to the connection identity. Data-source passwords are execution-only. Parameters and PDFs are memory-only until the user saves a PDF. Settings are user/machine scoped, not workspace configuration. Profile changes cancel/invalidate the current client execution and clear remembered parameters. Webview messages are treated as untrusted and are validated against the current parameter list; report strings are inserted using textContent. Workspace Trust is required before previewing.
+All three transports reject redirects and keep TLS verification on. HTTP is only allowed when the saved connection sets `allowHttp`.
+
+- **Basic:** Node `http`/`https`.
+- **Windows (`windows`, `ntlm`):** `media/request.ps1`, a fixed script run with `-File`. URL, body and credentials arrive as JSON on stdin. Explicit credentials are registered for NTLM and Negotiate only.
+- **macOS/Linux (`windows`, `ntlm`):** `/usr/bin/curl --disable --config -`. The config, including credentials and body, is written to stdin, so nothing sensitive appears in the process arguments.
+
+## State
+
+Connections live in machine-scoped settings. Passwords live in SecretStorage under a key derived from the server URL, auth method and username, so editing any of those requires the password again. Parameter values, database credentials and PDFs are held in memory. Changing connection settings invalidates the open execution and clears remembered values.
+
+Webview messages are treated as untrusted and validated against the current parameter list. Server-supplied strings are inserted with `textContent`.

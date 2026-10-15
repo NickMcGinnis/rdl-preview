@@ -9,6 +9,7 @@ export async function run(): Promise<void> {
   const extension = vscode.extensions.getExtension('NickMcGinnis.rdl-preview');
   assert.ok(extension, 'Extension is discoverable');
   const api = await extension.activate();
+  assert.ok(api, 'Test API is exposed in test mode');
   const commands = await vscode.commands.getCommands();
   for (const name of ['preview', 'manageProfiles', 'switchProfile', 'testConnection', 'demo']) assert.ok(commands.includes(`rdlPreview.${name}`));
   await vscode.commands.executeCommand('rdlPreview.demo');

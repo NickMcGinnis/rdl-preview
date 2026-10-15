@@ -43,6 +43,7 @@ export function activate(context: vscode.ExtensionContext) {
   }
   for (const [command, handler] of Object.entries({ preview, manageProfiles: () => connections.manage(), switchProfile: () => connections.switch(), testConnection, demo })) context.subscriptions.push(vscode.commands.registerCommand(`rdlPreview.${command}`, guard(handler)));
   context.subscriptions.push({ dispose: () => { current?.dispose(); remembered.clear(); } });
-  return { demo, snapshot: () => current?.snapshot(), render: (values: ParameterValues) => current?.submit(values, true), disposePreview: () => { current?.dispose(); current = undefined; } };
+  if (context.extensionMode !== vscode.ExtensionMode.Test) return;
+  return { snapshot: () => current?.snapshot(), render: (values: ParameterValues) => current?.submit(values, true), disposePreview: () => { current?.dispose(); current = undefined; } };
 }
 export function deactivate(): void {}
