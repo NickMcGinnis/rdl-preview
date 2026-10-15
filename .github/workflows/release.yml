@@ -1,0 +1,42 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Check tag matches package.json
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $version"
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - name: Extract release notes from CHANGELOG.md
+        run: |
+          awk -v heading="## $VERSION" 'index($0, heading) == 1 { found = 1; next } found && /^## / { exit } found' CHANGELOG.md > notes.md
+          if ! grep -q '[^[:space:]]' notes.md; then
+            echo "::error::CHANGELOG.md has no entry for $VERSION"
+            exit 1
+          fi
+          printf '\nInstall: download `rdl-preview-%s.vsix` below, then in VS Code use Extensions → … → Install from VSIX.\n' "$VERSION" >> notes.md
+      - run: npm ci
+      - run: npm run verify
+      - run: xvfb-run -a npm run test:extension
+      - run: npm run package
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # 0.x versions are published as pre-releases.
+          prerelease=$([ "${VERSION%%.*}" = 0 ] && echo --prerelease || true)
+          gh release create "$GITHUB_REF_NAME" "rdl-preview-$VERSION.vsix" --verify-tag --title "$GITHUB_REF_NAME" --notes-file notes.md $prerelease

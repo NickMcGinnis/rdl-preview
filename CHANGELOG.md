@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.2 — 2026-10-15
 
 - Windows NTLM connections only offer the password to NTLM/Negotiate challenges, so a server can no longer request it over Basic.
 - Windows transport no longer pins TLS 1.2; it adds TLS 1.2 to the system defaults instead.

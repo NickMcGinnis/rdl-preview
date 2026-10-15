@@ -8,10 +8,10 @@ RDL Preview submits the open report definition to the SSRS execution service as 
 
 ## Install
 
-Download `rdl-preview-0.1.1.vsix` from [GitHub Releases](https://github.com/NickMcGinnis/rdl-preview/releases), then either use Extensions → **… → Install from VSIX…** or run:
+Download the `.vsix` from the [latest release](https://github.com/NickMcGinnis/rdl-preview/releases), then either use Extensions → **… → Install from VSIX…** or run:
 
 ```sh
-code --install-extension rdl-preview-0.1.1.vsix
+code --install-extension rdl-preview-<version>.vsix
 ```
 
 Requires VS Code 1.96 or later. Run **RDL Preview: Open Demo Report** to try the parameter panel and PDF viewer without a server.

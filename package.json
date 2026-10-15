@@ -2,7 +2,7 @@
   "name": "rdl-preview",
   "displayName": "RDL Preview",
   "description": "Preview local SSRS RDL reports with parameters and saved environment profiles.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "NickMcGinnis",
   "license": "MIT",
   "engines": {
