@@ -6,6 +6,10 @@ body { height: 100vh; display: flex; flex-direction: column; overflow: hidden; m
 h1 { margin: 0; font-size: 18px; font-weight: 600; overflow-wrap: anywhere; }
 h2 { font-size: 14px; font-weight: 600; margin: 0; }
 p { margin: 4px 0 0; }
+.title { min-width: 0; }
+.topbar-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.environment-picker { color: var(--vscode-descriptionForeground, #aaa); font-size: 12px; }
+#environment-select { width: auto; min-width: 160px; max-width: 260px; }
 #environment { color: var(--vscode-descriptionForeground, #aaa); overflow-wrap: anywhere; }
 .notice { flex-shrink: 0; padding: 10px 22px; background: var(--vscode-inputValidation-warningBackground, #423b16); color: var(--vscode-foreground, #ddd); border-bottom: 1px solid var(--vscode-inputValidation-warningBorder, #826b21); }
 #error { max-height: 25vh; flex-shrink: 0; overflow: auto; margin: 16px 22px; padding: 12px; border: 1px solid var(--vscode-inputValidation-errorBorder, #be1100); background: var(--vscode-inputValidation-errorBackground, #5a1d1d); white-space: pre-wrap; overflow-wrap: anywhere; }

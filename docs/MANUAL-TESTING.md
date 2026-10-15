@@ -11,7 +11,7 @@ Automated tests use local SOAP fixtures only. Use this checklist against a devel
 7. Check parameter names, defaults, labels, available values and types. Test dates, false booleans, multiple selections, blank vs null and cascading parameters. Change an upstream value and confirm dependent values are cleared and refreshed.
 8. Render and compare values, layout, page count and totals with the same report run from the web portal. Test page navigation, zoom and Save PDF on a multipage report.
 9. Edit the RDL without saving and run **Preview Report** again. Confirm the preview reflects the edit and keeps parameter values for the current environment.
-10. Add a second environment and switch from the status bar. Confirm the old execution is invalidated, the panel names the new environment, overrides point at the intended database, and parameter values don't carry across environments.
+10. Add a second environment from the preview's **Environment** dropdown and switch to it there. Confirm the panel reloads parameters for the new environment, the previous PDF is cleared, overrides point at the intended database, and parameter values don't carry across environments.
 11. Restart VS Code. Connections and passwords should persist; parameter values should be cleared. Edit a connection and replace a password through Manage Connections.
 
 When reporting a failure, include the extension version, VS Code version, OS, SSRS/PBIRS version, authentication method, the step that failed and a sanitized error message.

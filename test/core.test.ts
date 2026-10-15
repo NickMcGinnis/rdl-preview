@@ -66,9 +66,9 @@ test('dependent parameters are invalidated transitively and remembered choices a
   const value = initialValues([p({ validValues: [{ label: 'new', value: 'new' }] })], { A: ['old'] });
   assert.equal(value.A, undefined);
 });
-test('SOAP encodes repeated multi-value entries, escaped strings, blank and xsi:nil', () => {
+test('SOAP encodes repeated multi-value entries, escaped strings, blank and null as an omitted Value', () => {
   const result = parameterXml({ A: ['<&', '', null], B: ['1'] });
-  assert.match(result, /&lt;&amp;/); assert.match(result, /<Value><\/Value>/); assert.match(result, /xsi:nil="true"/);
+  assert.match(result, /&lt;&amp;/); assert.match(result, /<Value><\/Value>/); assert.match(result, /<ParameterValue><Name>A<\/Name><\/ParameterValue>/); assert.doesNotMatch(result, /xsi:nil/);
   assert.equal((result.match(/<Name>A<\/Name>/g) || []).length, 3);
 });
 test('execution metadata preserves nil defaults, dependencies, unavailable and empty choices', () => {

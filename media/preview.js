@@ -16,7 +16,7 @@ const workerReady = (async () => {
 // The preview handler displays any startup failure when a PDF is requested.
 workerReady.catch(() => {});
 const $ = id => document.getElementById(id);
-let state, pdfDocument, pdfLoading, currentPage = 1, rendering, drawSequence = 0;
+let state, pdfDocument, pdfLoading, currentPage = 1, rendering, drawSequence = 0, pdfSequence = 0, pdfReceived = false, environmentKey;
 const bindings = new Map();
 let refreshTimer;
 
@@ -42,6 +42,13 @@ function send(type) { if (!state || state.busy || state.invalidated) return; vsc
 $('parameters-form').addEventListener('submit', event => { event.preventDefault(); send('render'); });
 $('refresh').addEventListener('click', () => send('refresh'));
 $('save').addEventListener('click', () => vscode.postMessage({ type: 'savePdf' }));
+$('environment-select').addEventListener('change', event => {
+  const value = event.target.value;
+  if (value.startsWith('env:')) { vscode.postMessage({ type: 'selectEnvironment', id: value.slice(4) }); return; }
+  // Actions open VS Code prompts; keep showing the current environment.
+  event.target.value = state.environmentId ? `env:${state.environmentId}` : '';
+  vscode.postMessage({ type: value === 'action:add' ? 'addConnection' : 'manageConnections' });
+});
 $('previous').addEventListener('click', () => { if (currentPage > 1) { currentPage--; void draw(); } });
 $('next').addEventListener('click', () => { if (pdfDocument && currentPage < pdfDocument.numPages) { currentPage++; void draw(); } });
 $('zoom').addEventListener('change', () => void draw());
@@ -96,6 +103,25 @@ function fields() {
     bindings.set(p.name, { parameter: p, input, nullInput }); root.append(wrapper);
   });
 }
+function environments() {
+  const select = $('environment-select'), key = JSON.stringify([state.environments, state.environmentId]);
+  if (key === environmentKey) return;
+  environmentKey = key; select.replaceChildren();
+  if (!state.environmentId) { const placeholder = new Option('Choose an environment…', '', true, true); placeholder.disabled = true; select.add(placeholder); }
+  const group = document.createElement('optgroup'); group.label = 'Environments';
+  for (const environment of state.environments) {
+    const option = new Option(environment.name, `env:${environment.id}`, false, environment.id === state.environmentId);
+    option.title = environment.detail; group.append(option);
+  }
+  const actions = document.createElement('optgroup'); actions.label = 'Connections';
+  actions.append(new Option('Add connection…', 'action:add'), new Option('Manage connections…', 'action:manage'));
+  select.append(group, actions);
+}
+function clearPdf() {
+  pdfSequence++; drawSequence++; pdfReceived = false; rendering?.cancel();
+  void pdfLoading?.destroy(); pdfLoading = pdfDocument = undefined; currentPage = 1;
+  $('pdf-canvas').hidden = true; $('pdf-toolbar').hidden = true; $('empty').hidden = false;
+}
 function parentChanged(p) { if (state.parameters.some(child => child.dependencies.includes(p.name))) send('refresh'); }
 function update(next) {
   // Retain pending edits across busy-state updates; server replies supply new fields.
@@ -104,7 +130,9 @@ function update(next) {
   if (next.busy && pending) next.values = pending;
   state = next;
   $('report').textContent = state.report;
-  $('environment').textContent = `${state.environment}${state.serverUrl ? ` · ${state.serverUrl}` : ''}`;
+  $('environment').textContent = state.serverUrl || (state.demo ? 'Local simulated preview' : '');
+  environments();
+  if (!state.hasPdf && pdfReceived) clearPdf();
   $('demo-notice').hidden = !state.demo;
   $('error').hidden = !state.error; $('error').textContent = state.error || '';
   $('warnings').textContent = state.warnings.join('\n');
@@ -147,15 +175,21 @@ window.addEventListener('message', async event => {
   const message = event.data;
   if (message.type === 'state') update(message);
   else if (message.type === 'pdf') {
+    const sequence = ++pdfSequence; pdfReceived = true;
     try {
       if (pdfLoading) await pdfLoading.destroy();
       const binary = atob(message.base64), data = Uint8Array.from(binary, c => c.charCodeAt(0));
       const base = new URL('./pdfjs/', import.meta.url).href;
       await workerReady;
-      pdfLoading = pdfjs.getDocument({ data, useWorkerFetch: false, standardFontDataUrl: base + 'standard_fonts/', cMapUrl: base + 'cmaps/', cMapPacked: true, wasmUrl: base + 'wasm/', isEvalSupported: false });
-      pdfDocument = await pdfLoading.promise;
+      if (sequence !== pdfSequence) return;
+      const loading = pdfLoading = pdfjs.getDocument({ data, useWorkerFetch: false, standardFontDataUrl: base + 'standard_fonts/', cMapUrl: base + 'cmaps/', cMapPacked: true, wasmUrl: base + 'wasm/', isEvalSupported: false });
+      const loaded = await loading.promise;
+      // A newer PDF or an environment switch replaced this document while it loaded.
+      if (sequence !== pdfSequence) { void loading.destroy(); if (pdfLoading === loading) pdfLoading = undefined; return; }
+      pdfDocument = loaded;
       currentPage = 1; await draw();
     } catch (error) {
+      if (sequence !== pdfSequence) return;
       $('render-status').textContent = `PDF display failed: ${error.message}. Use Save PDF to view it externally.`;
       vscode.postMessage({ type: 'pdfError', error: error.message });
     }

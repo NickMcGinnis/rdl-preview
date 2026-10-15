@@ -11,15 +11,14 @@ export function activate(context: vscode.ExtensionContext) {
   let current: Preview | undefined;
   const showError = (error: unknown) => vscode.window.showErrorMessage(`RDL Preview: ${error instanceof Error ? error.message : String(error)}`);
   const guard = (fn: (...args: any[]) => Promise<unknown>) => (...args: any[]) => fn(...args).catch(showError);
-  context.subscriptions.push(connections.onChange(() => { current?.invalidate(); remembered.clear(); }));
+  context.subscriptions.push(connections.onChange(change => { if (change === 'profiles') remembered.clear(); void current?.reconnect(); }));
   async function preview(uri?: vscode.Uri): Promise<void> {
     if (!vscode.workspace.isTrusted) throw new Error('Trust this workspace before previewing reports.');
     const target = uri || vscode.window.activeTextEditor?.document.uri;
     if (!target || !/\.rdl$/i.test(target.path)) throw new Error('Open an .rdl file, then run Preview Report.');
-    const profile = connections.active() || await connections.switch();
-    if (!profile) return;
     current?.dispose(); current = undefined;
-    await Preview.open(context, target, profile, connections, remembered, panel => { current = panel; });
+    if (!connections.active() && !await connections.switch()) return;
+    await Preview.open(context, target, connections, remembered, panel => { current = panel; });
   }
   async function demo(): Promise<void> {
     await connections.select(DEMO_PROFILE);
@@ -44,6 +43,6 @@ export function activate(context: vscode.ExtensionContext) {
   for (const [command, handler] of Object.entries({ preview, manageProfiles: () => connections.manage(), switchProfile: () => connections.switch(), testConnection, demo })) context.subscriptions.push(vscode.commands.registerCommand(`rdlPreview.${command}`, guard(handler)));
   context.subscriptions.push({ dispose: () => { current?.dispose(); remembered.clear(); } });
   if (context.extensionMode !== vscode.ExtensionMode.Test) return;
-  return { snapshot: () => current?.snapshot(), render: (values: ParameterValues) => current?.submit(values, true), disposePreview: () => { current?.dispose(); current = undefined; } };
+  return { snapshot: () => current?.snapshot(), render: (values: ParameterValues) => current?.submit(values, true), selectEnvironment: (id: string) => current?.selectEnvironment(id), disposePreview: () => { current?.dispose(); current = undefined; } };
 }
 export function deactivate(): void {}

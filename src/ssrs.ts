@@ -6,8 +6,9 @@ export const NS = 'http://schemas.microsoft.com/sqlserver/2005/06/30/reporting/r
 export function envelope(method: string, content: string, id?: string): string {
   return `<?xml version="1.0" encoding="utf-8"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soap:Header>${id ? `<ExecutionHeader xmlns="${NS}"><ExecutionID>${escapeXml(id)}</ExecutionID></ExecutionHeader>` : ''}</soap:Header><soap:Body><${method} xmlns="${NS}">${content}</${method}></soap:Body></soap:Envelope>`;
 }
+// ParameterValue.Value is minOccurs="0" but not nillable, so SSRS reads xsi:nil as "". Null is sent by omitting Value, as the .NET proxy does.
 export function parameterXml(values: ParameterValues): string {
-  return Object.entries(values).flatMap(([name, vs]) => vs.map(v => `<ParameterValue><Name>${escapeXml(name)}</Name>${v === null ? '<Value xsi:nil="true" />' : `<Value>${escapeXml(v)}</Value>`}</ParameterValue>`)).join('');
+  return Object.entries(values).flatMap(([name, vs]) => vs.map(v => `<ParameterValue><Name>${escapeXml(name)}</Name>${v === null ? '' : `<Value>${escapeXml(v)}</Value>`}</ParameterValue>`)).join('');
 }
 const yes = (value: any) => xmlText(value).trim().toLowerCase() === 'true';
 export function decodeInfo(raw: any, headerId?: string): ExecutionInfo {

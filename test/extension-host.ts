@@ -26,10 +26,19 @@ export async function run(): Promise<void> {
   assert.equal(api.snapshot().pdfPages, 1);
   await vscode.workspace.getConfiguration('rdlPreview').update('profiles', [{ id: 'dev', name: 'Dev', auth: 'windows', serverUrl: 'https://example.test/reportserver' }], vscode.ConfigurationTarget.Global);
   await new Promise(resolve => setTimeout(resolve, 300));
-  assert.equal(api.snapshot().invalidated, true, 'A connection change invalidates the existing execution');
-  const before = api.snapshot().pdfBytes;
+  assert.equal(api.snapshot().profile, 'Demo (simulated)', 'Editing another connection keeps the current execution');
+  assert.ok(api.snapshot().pdfBytes > 500);
+  await api.selectEnvironment('dev');
+  assert.equal(api.snapshot().profile, 'Dev', 'The panel switches environment in place');
+  assert.equal(api.snapshot().pdfBytes, 0, 'Switching discards the previous environment\'s output');
   await api.render({ Department: ['Engineering'] });
-  assert.equal(api.snapshot().pdfBytes, before, 'An invalidated execution cannot render');
+  assert.equal(api.snapshot().pdfBytes, 0, 'The previous execution cannot render after a switch');
+  await api.selectEnvironment('demo');
+  await waitFor(() => api.snapshot()?.parameterNames.length === 6, 'Switching back starts a new demo execution');
+  assert.equal(api.snapshot().profile, 'Demo (simulated)');
+  await api.render({ Department: ['Engineering'], StartDate: ['2026-10-16'], MinimumAmount: ['0'], IncludeInactive: ['true'], Regions: ['West'], Notes: [null] });
+  assert.ok(api.snapshot().pdfBytes > 500, 'The new execution renders');
+  await vscode.workspace.getConfiguration('rdlPreview').update('profiles', [], vscode.ConfigurationTarget.Global);
   api.disposePreview();
-  console.log('Extension host: activation, registered commands, demo parameters, PDF output and connection invalidation passed.');
+  console.log('Extension host: activation, registered commands, demo parameters, PDF output and in-panel environment switching passed.');
 }

@@ -33,6 +33,6 @@ All three transports reject redirects and keep TLS verification on. HTTP is only
 
 ## State
 
-Connections live in machine-scoped settings. Passwords live in SecretStorage under a key derived from the server URL, auth method and username, so editing any of those requires the password again. Parameter values, database credentials and PDFs are held in memory. Changing connection settings invalidates the open execution and clears remembered values.
+Connections live in machine-scoped settings. Passwords live in SecretStorage under a key derived from the server URL, auth method and username, so editing any of those requires the password again. Parameter values, database credentials and PDFs are held in memory. Switching environment, or editing the active connection, replaces the open execution in the same panel; replies from the replaced execution are discarded. Changing connection settings clears remembered values.
 
 Webview messages are treated as untrusted and validated against the current parameter list. Server-supplied strings are inserted with `textContent`.

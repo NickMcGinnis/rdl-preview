@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.3 — 2026-10-15
+
+- The editor title bar shows a report icon instead of the **Preview Report** label.
+- Switch, add and manage environments from a dropdown in the preview header. Switching starts a new execution in the same panel instead of requiring **Preview Report** again.
+- Remove the environment status bar item.
+- Fix **Use null** on non-string parameters. A null value is now sent without a `Value` element, as Visual Studio sends it, instead of with `xsi:nil`, which SSRS read as a blank value. Integer, date and other typed parameters were rejected as "not valid for its type".
+
 ## 0.1.2 — 2026-10-15
 
 - Windows NTLM connections only offer the password to NTLM/Negotiate challenges, so a server can no longer request it over Basic.

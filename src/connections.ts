@@ -7,16 +7,13 @@ const usesPassword = (p: Profile): boolean => p.auth === 'basic' || p.auth === '
 const secretKey = (p: Profile): string => `connection:${p.id}:${createHash('sha256').update(JSON.stringify([p.auth, p.serverUrl, p.username || ''])).digest('hex')}`;
 
 export const DEMO_PROFILE: Profile = { id: 'demo', name: 'Demo (simulated)', auth: 'demo', serverUrl: '', catalogFolder: '/', parameterLanguage: 'en-US' };
+export type ConnectionChange = 'profiles' | 'selection';
 export class Connections {
-  private readonly status: vscode.StatusBarItem;
-  private readonly listeners = new Set<() => void>();
+  private readonly listeners = new Set<(change: ConnectionChange) => void>();
   constructor(private context: vscode.ExtensionContext) {
-    this.status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-    this.status.command = 'rdlPreview.switchProfile';
-    context.subscriptions.push(this.status, vscode.workspace.onDidChangeConfiguration(e => { if (e.affectsConfiguration('rdlPreview.profiles')) this.changed(); }));
-    this.changed(); this.status.show();
+    context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e => { if (e.affectsConfiguration('rdlPreview.profiles')) this.changed('profiles'); }));
   }
-  onChange(listener: () => void): vscode.Disposable { this.listeners.add(listener); return { dispose: () => this.listeners.delete(listener) }; }
+  onChange(listener: (change: ConnectionChange) => void): vscode.Disposable { this.listeners.add(listener); return { dispose: () => this.listeners.delete(listener) }; }
   profiles(): Profile[] {
     const raw = vscode.workspace.getConfiguration('rdlPreview').get<unknown[]>('profiles', []);
     if (!Array.isArray(raw)) throw new Error('RDL Preview connections must be an array. Open Manage Connections to repair the settings.');
@@ -28,17 +25,13 @@ export class Connections {
     const id = this.context.workspaceState.get<string>('activeProfile');
     return id === 'demo' ? DEMO_PROFILE : this.profiles().find(p => p.id === id);
   }
-  private changed(): void {
-    try { this.status.text = `$(server-environment) RDL: ${this.active()?.name || 'Select environment'}`; this.status.tooltip = 'Switch the environment used for the next RDL preview'; }
-    catch { this.status.text = '$(warning) RDL: Check connections'; this.status.tooltip = 'Open Manage Connections to repair connection settings'; }
-    for (const listener of this.listeners) listener();
-  }
-  async select(profile: Profile): Promise<void> { await this.context.workspaceState.update('activeProfile', profile.id); this.changed(); }
+  private changed(change: ConnectionChange): void { for (const listener of this.listeners) listener(change); }
+  async select(profile: Profile): Promise<void> { await this.context.workspaceState.update('activeProfile', profile.id); this.changed('selection'); }
   async switch(): Promise<Profile | undefined> {
     const options = [...this.profiles(), DEMO_PROFILE].map(profile => ({ label: profile.name, description: profile.auth === 'demo' ? 'Local simulated preview' : profile.serverUrl, profile }));
     const selected = await vscode.window.showQuickPick([...options, { label: '$(add) Add connection…', description: '', profile: undefined }], { title: 'RDL Preview — choose environment', placeHolder: 'The selected environment is used for the next preview' });
     if (!selected) return;
-    if (!selected.profile) return this.edit();
+    if (!selected.profile) return this.add();
     await this.select(selected.profile); return selected.profile;
   }
   async password(profile: Profile): Promise<string | undefined> {
@@ -81,14 +74,14 @@ export class Connections {
       const answer = await vscode.window.showWarningMessage(`Delete saved connection "${p.name}" from this machine?`, { modal: true }, 'Delete');
       if (answer !== 'Delete') return;
       await this.save(profiles.filter(v => v.id !== p.id)); await this.context.secrets.delete(secretKey(p));
-      if (this.context.workspaceState.get('activeProfile') === p.id) await this.context.workspaceState.update('activeProfile', undefined);
-      this.changed();
+      if (this.context.workspaceState.get('activeProfile') === p.id) { await this.context.workspaceState.update('activeProfile', undefined); this.changed('selection'); }
     }
   }
   private async save(profiles: Profile[]): Promise<void> {
+    // The configuration listener reports the change.
     await vscode.workspace.getConfiguration('rdlPreview').update('profiles', profiles, vscode.ConfigurationTarget.Global);
-    this.changed();
   }
+  add(): Promise<Profile | undefined> { return this.edit(); }
   private async edit(existing?: Profile): Promise<Profile | undefined> {
     const name = await vscode.window.showInputBox({ title: 'Connection name', value: existing?.name, placeHolder: 'Development', ignoreFocusOut: true, validateInput: v => v.trim() ? undefined : 'Enter a name.' });
     if (name === undefined) return;

@@ -21,7 +21,7 @@ Requires VS Code 1.96 or later. Run **RDL Preview: Open Demo Report** to try the
 1. Open an `.rdl` file in a trusted workspace.
 2. Run **RDL Preview: Manage Connections** and add a connection.
 3. Run **RDL Preview: Test Connection** to check the execution endpoint responds.
-4. Run **RDL Preview: Preview Report** (also in the editor title bar and the file context menu).
+4. Run **RDL Preview: Preview Report**, or click the report icon in the editor title bar (also in the file context menu).
 5. Fill in parameters and click **Render preview**.
 
 Parameters can be changed and re-rendered in place. After editing the RDL, run **Preview Report** again; unsaved edits are included.
@@ -32,7 +32,7 @@ The viewer supports page navigation, zoom and **Save PDF**. The inline preview i
 
 ## Connections
 
-The status bar shows the active connection; click it or run **Switch Environment** to change it. Switching invalidates the current execution, so run **Preview Report** again.
+The preview header shows the active environment. Pick another from its **Environment** dropdown to start a new execution in the same panel; the dropdown also adds and manages connections. **Switch Environment** in the Command Palette does the same.
 
 **Manage Connections** adds, edits and deletes connections and replaces saved passwords. **Edit advanced settings** opens the `rdlPreview.profiles` setting, which is machine-scoped and not synced. Passwords are stored in VS Code SecretStorage. Parameter values are remembered per report and connection until VS Code restarts or connection settings change.
 

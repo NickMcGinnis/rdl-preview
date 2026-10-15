@@ -2,7 +2,7 @@
   "name": "rdl-preview",
   "displayName": "RDL Preview",
   "description": "Preview local SSRS RDL reports with parameters and saved environment profiles.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "publisher": "NickMcGinnis",
   "license": "MIT",
   "engines": {
@@ -43,23 +43,29 @@
     "commands": [
       {
         "command": "rdlPreview.preview",
-        "title": "RDL Preview: Preview Report"
+        "title": "Preview Report",
+        "category": "RDL Preview",
+        "icon": "$(graph)"
       },
       {
         "command": "rdlPreview.manageProfiles",
-        "title": "RDL Preview: Manage Connections"
+        "title": "Manage Connections",
+        "category": "RDL Preview"
       },
       {
         "command": "rdlPreview.switchProfile",
-        "title": "RDL Preview: Switch Environment"
+        "title": "Switch Environment",
+        "category": "RDL Preview"
       },
       {
         "command": "rdlPreview.testConnection",
-        "title": "RDL Preview: Test Connection"
+        "title": "Test Connection",
+        "category": "RDL Preview"
       },
       {
         "command": "rdlPreview.demo",
-        "title": "RDL Preview: Open Demo Report"
+        "title": "Open Demo Report",
+        "category": "RDL Preview"
       }
     ],
     "menus": {

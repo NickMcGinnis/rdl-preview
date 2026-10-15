@@ -9,7 +9,7 @@ const demo = new DemoSession();
 let info = await demo.load(await readFile('examples/parameter-demo.rdl', 'utf8'));
 let values = initialValues(info.parameters);
 let hasPdf = false;
-const state = () => ({ type: 'state', report: 'parameter-demo.rdl', environment: 'Demo (simulated)', demo: true, parameters: info.parameters, values, errors: {}, error: '', warnings: info.warnings, busy: false, loaded: true, invalidated: false, hasPdf });
+const state = () => ({ type: 'state', report: 'parameter-demo.rdl', environments: [{ id: 'dev', name: 'Development', detail: 'https://dev.example.test/reportserver' }, { id: 'demo', name: 'Demo (simulated)', detail: 'Local simulated preview' }], environmentId: 'demo', serverUrl: '', demo: true, parameters: info.parameters, values, errors: {}, error: '', warnings: info.warnings, busy: false, loaded: true, invalidated: false, hasPdf });
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || '/', 'http://127.0.0.1');
   try {
