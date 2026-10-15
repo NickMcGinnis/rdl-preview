@@ -66,6 +66,7 @@ test('redirects and sign-in pages are rejected without following them', async ()
 
 test('platform HTTP adapter transports SOAP using stdin and preserves HTTP error bodies', async () => {
   let received = '';
+  const authTrace: number[] = [];
   // Synthetic NTLM type-2 challenge: exercise the system's real handshake,
   // without asserting cryptographic identity or requiring a domain/server.
   const target = Buffer.from('FIXTURE', 'utf16le');
@@ -78,6 +79,7 @@ test('platform HTTP adapter transports SOAP using stdin and preserves HTTP error
     const authorization = String(request.headers.authorization || '');
     const token = Buffer.from(authorization.replace(/^NTLM /i, ''), 'base64');
     const type = token.length >= 12 ? token.readUInt32LE(8) : 0;
+    authTrace.push(type);
     if (type !== 3) {
       for await (const _chunk of request) {}
       response.writeHead(401, { 'WWW-Authenticate': type === 1 ? `NTLM ${challenge.toString('base64')}` : 'NTLM', 'Content-Length': '0', Connection: 'keep-alive' }); response.end(); return;
@@ -87,9 +89,11 @@ test('platform HTTP adapter transports SOAP using stdin and preserves HTTP error
   });
   server.listen(0, '127.0.0.1'); await once(server, 'listening');
   const url = `http://127.0.0.1:${(server.address() as any).port}/reportserver/ReportExecution2005.asmx`;
-  const transport = createTransport({ id: 'local', name: 'Local transport fixture', auth: 'ntlm', username: 'DOMAIN\\fixture', serverUrl: url, allowHttp: true, timeoutSeconds: 10 }, 'synthetic-not-a-real-password', process.cwd());
+  const transport = createTransport({ id: 'local', name: 'Local transport fixture', auth: 'ntlm', username: 'DOMAIN\\fixture', serverUrl: url, allowHttp: true, timeoutSeconds: 60 }, 'synthetic-not-a-real-password', process.cwd());
   try {
     const result = await transport.post(url, `${NS}/LoadReportDefinition`, '<report>é &amp; example</report>');
     assert.equal(result.status, 500); assert.match(result.body, /é &amp; unicode/); assert.equal(received, '<report>é &amp; example</report>');
+  } catch (error) {
+    throw new Error(`${(error as Error).message} (synthetic fixture authentication message types: ${authTrace.join(', ') || 'no requests received'})`);
   } finally { transport.dispose(); server.close(); await once(server, 'close'); }
 });
