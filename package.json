@@ -2,7 +2,7 @@
   "name": "rdl-preview",
   "displayName": "RDL Preview",
   "description": "Preview local SSRS RDL reports with parameters and saved environment profiles.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "NickMcGinnis",
   "license": "MIT",
   "engines": {
@@ -136,7 +136,7 @@
               "allowHttp": {
                 "type": "boolean",
                 "default": false,
-                "description": "Explicitly permit unencrypted HTTP for this connection (never for Basic authentication)."
+                "description": "Explicitly permit unencrypted HTTP for this connection, including Basic authentication. Basic credentials and report data travel without encryption."
               },
               "dataSources": {
                 "type": "object",

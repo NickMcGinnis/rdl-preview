@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1 — 2026-10-15
+
+- Allow Basic authentication with HTTP-only SSRS servers after explicit per-connection opt-in.
+- Explain unencrypted credential transmission in the connection warning and settings.
+- Preserve the opt-in when editing the same connection; keep HTTPS certificate checks and redirect rejection.
+- Add real HTTP Basic SOAP regression coverage for parameterized preview.
+
 ## 0.1.0 — 2026-10-15
 
 Initial testing release:

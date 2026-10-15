@@ -91,15 +91,18 @@ export class Connections {
     const authChoice = await vscode.window.showQuickPick([
       { label: 'Windows / current identity', description: process.platform === 'win32' ? 'Native Windows credentials through PowerShell' : 'System curl + a valid Kerberos ticket (SPNEGO)', value: 'windows' },
       { label: 'NTLM / username and password', description: 'DOMAIN\\username; password stored encrypted', value: 'ntlm' },
-      { label: 'Basic / username and password', description: 'Requires HTTPS and Basic enabled on SSRS', value: 'basic' }
+      { label: 'Basic / username and password', description: 'Basic enabled on SSRS; HTTP requires explicit opt-in', value: 'basic' }
     ], { title: 'SSRS authentication', placeHolder: existing ? `Current method: ${existing.auth}` : 'Choose the method configured on your server' });
     if (!authChoice) return;
     const auth = authChoice.value as AuthMode;
     const serverUrl = await vscode.window.showInputBox({ title: 'Report server URL', prompt: 'Usually https://host/reportserver. Use the service endpoint, not the /reports portal.', value: existing?.serverUrl, ignoreFocusOut: true });
     if (serverUrl === undefined) return;
-    let allowHttp = false;
-    if (/^http:/i.test(serverUrl) && auth !== 'basic') {
-      const answer = await vscode.window.showWarningMessage('This connection uses unencrypted HTTP. RDL content, parameter values and report data travel without TLS.', { modal: true }, 'Allow HTTP for this connection');
+    let allowHttp = existing?.allowHttp === true && existing.auth === auth && existing.serverUrl === serverUrl.trim().replace(/\/+$/, '');
+    if (/^http:/i.test(serverUrl.trim()) && !allowHttp) {
+      const warning = auth === 'basic'
+        ? 'Basic authentication over HTTP sends your username and password without encryption. RDL content, parameter values and report data also travel without TLS.'
+        : 'This connection uses unencrypted HTTP. RDL content, parameter values and report data travel without TLS.';
+      const answer = await vscode.window.showWarningMessage(warning, { modal: true }, 'Allow HTTP for this connection');
       if (!answer) return;
       allowHttp = true;
     }

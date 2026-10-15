@@ -37,11 +37,11 @@ test('rejects malformed XML and external entity declarations before processing',
   assert.throws(() => prepareRdl('<Report><Oops></Report>', profile), /Invalid XML/);
   assert.throws(() => prepareRdl('<!DOCTYPE Report [<!ENTITY x SYSTEM "file:///etc/passwd">]><Report>&x;</Report>', profile), /DTD/);
 });
-test('profiles require explicit HTTP opt-in, forbid Basic over HTTP and avoid embedded credentials', () => {
+test('profiles require explicit HTTP opt-in and avoid embedded credentials', () => {
   assert.equal(validateProfile(profile).timeoutSeconds, 120);
   assert.throws(() => validateProfile({ ...profile, serverUrl: 'http://example.test/reportserver' }), /HTTPS/);
   assert.doesNotThrow(() => validateProfile({ ...profile, serverUrl: 'http://example.test/reportserver', allowHttp: true }));
-  assert.throws(() => validateProfile({ ...profile, auth: 'basic', username: 'demo', serverUrl: 'http://example.test/reportserver', allowHttp: true }), /requires HTTPS/);
+  assert.doesNotThrow(() => validateProfile({ ...profile, auth: 'basic', username: 'demo', serverUrl: 'http://example.test/reportserver', allowHttp: true }));
   assert.throws(() => validateProfile({ ...profile, serverUrl: 'https://user:password@example.test/reportserver' }), /without credentials/);
   assert.throws(() => validateProfile({ ...profile, serverUrl: 'https://example.test/reports' }), /portal/);
   assert.throws(() => validateProfile({ ...profile, dataSources: { Main: { connectionString: 'Server=dev;PWD=secret' } } }), /credentials/);

@@ -1,6 +1,6 @@
-# Validation for v0.1.0
+# Validation for v0.1.1
 
-Initial validation was performed on macOS without a live SSRS server.
+Initial validation was performed on macOS without a live SSRS server. The v0.1.1 regression checks add a loopback Basic-auth HTTP server covering connection testing, temporary definition loading, parameter submission, PDF retrieval and redirect rejection. Opt-in is checked in both profile validation and the transport before credentials can be sent.
 
 - TypeScript checks and production bundle build passed.
 - Local tests cover XML preservation and preview-only overrides, relative shared-resource paths, malformed XML / entity rejection, connection validation, parameter types, null vs blank, multi-value serialization, dependency invalidation, metadata decoding, curl config escaping and demo PDF parsing.

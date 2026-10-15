@@ -52,8 +52,10 @@ export function createTransport(profile: Profile, password: string | undefined, 
       if (profile.auth === 'basic') {
         return new Promise((resolve, reject) => {
           const u = new URL(url);
-          if (u.protocol !== 'https:') { reject(new Error('Basic authentication requires HTTPS.')); return; }
-          const req = https.request(u, { method: 'POST', signal: controller.signal, headers: {
+          if (!['http:', 'https:'].includes(u.protocol)) { reject(new Error('Basic authentication requires an HTTP(S) report server URL.')); return; }
+          if (u.protocol === 'http:' && profile.allowHttp !== true) { reject(new Error('Use HTTPS, or explicitly allow HTTP in this connection.')); return; }
+          const client = u.protocol === 'http:' ? http : https;
+          const req = client.request(u, { method: 'POST', signal: controller.signal, headers: {
             'Content-Type': 'text/xml; charset=utf-8', SOAPAction: `"${action}"`, 'Content-Length': Buffer.byteLength(body),
             Authorization: `Basic ${Buffer.from(`${profile.username}:${password ?? ''}`).toString('base64')}`
           } }, response => {
@@ -63,7 +65,7 @@ export function createTransport(profile: Profile, password: string | undefined, 
             response.on('error', reject);
           });
           const timer = setTimeout(() => req.destroy(new Error('SSRS request timed out.')), timeoutMs);
-          req.on('error', error => { clearTimeout(timer); reject(new Error(`HTTPS request failed (${(error as NodeJS.ErrnoException).code || 'network error'}). Check connectivity, certificate trust and authentication.`)); });
+          req.on('error', error => { clearTimeout(timer); reject(new Error(`HTTP(S) request failed (${(error as NodeJS.ErrnoException).code || 'network error'}). Check connectivity, certificate trust and authentication.`)); });
           req.end(body);
         });
       }

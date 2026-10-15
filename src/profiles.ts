@@ -10,7 +10,7 @@ export function validateProfile(input: unknown): Profile {
     let u: URL;
     try { u = new URL(p.serverUrl); } catch { throw new Error('Enter a full report server URL, such as https://host/reportserver.'); }
     if (!['https:', 'http:'].includes(u.protocol) || u.username || u.password || u.search || u.hash) throw new Error('Use an HTTP(S) report server URL without credentials, a query or a fragment.');
-    if (u.protocol !== 'https:' && (p.auth === 'basic' || !p.allowHttp)) throw new Error(p.auth === 'basic' ? 'Basic authentication requires HTTPS.' : 'Use HTTPS, or explicitly allow HTTP in this connection.');
+    if (u.protocol === 'http:' && p.allowHttp !== true) throw new Error('Use HTTPS, or explicitly allow HTTP in this connection.');
     if (/\/reports\/?$/i.test(u.pathname)) throw new Error('Use the report server endpoint (usually /reportserver), rather than the /reports portal.');
     if (['basic', 'ntlm'].includes(p.auth) && !p.username?.trim()) throw new Error('Enter a username for this authentication method.');
   }

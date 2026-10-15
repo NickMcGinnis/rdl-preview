@@ -4,18 +4,18 @@ Edit SSRS reports with Copilot in VS Code, enter parameters, and preview a serve
 
 RDL Preview is an MIT-licensed VS Code desktop extension. It submits the local report definition to the SSRS execution service, runs a temporary execution, and displays the returned PDF. It does not publish a permanent report or modify your source file.
 
-**v0.1.0 is an initial testing release.** Local SOAP fixture tests, a VS Code extension-host smoke test and the PDF viewer are verified. Authentication and rendering against a live SSRS/PBIRS installation still require workplace acceptance testing. Demo mode generates an explicitly simulated PDF and does not render RDL.
+**v0.1.1 is a testing release.** Local SOAP fixture tests, a VS Code extension-host smoke test and the PDF viewer are verified. Authentication and rendering against a live SSRS/PBIRS installation still require workplace acceptance testing. Demo mode generates an explicitly simulated PDF and does not render RDL.
 
 ## Install
 
-1. Download `rdl-preview-0.1.0.vsix` from [GitHub Releases](https://github.com/NickMcGinnis/rdl-preview/releases).
+1. Download `rdl-preview-0.1.1.vsix` from [GitHub Releases](https://github.com/NickMcGinnis/rdl-preview/releases).
 2. In VS Code, open Extensions → **… → Install from VSIX…** and select the file.
 3. Run **RDL Preview: Open Demo Report** from the Command Palette to try parameter entry and PDF display without a server.
 
 Alternatively:
 
 ```sh
-code --install-extension rdl-preview-0.1.0.vsix
+code --install-extension rdl-preview-0.1.1.vsix
 ```
 
 VS Code 1.96 or later is required. Installation from GitHub does not require a Marketplace account. Follow your organization's software installation rules on managed laptops.
@@ -77,12 +77,12 @@ Example user settings (illustrative hosts and paths):
 | --- | --- | --- |
 | `windows` | Current Windows identity through the bundled PowerShell HTTP helper | System `/usr/bin/curl` with SPNEGO and an existing, valid Kerberos ticket |
 | `ntlm` | Explicit credentials through the Windows helper | System `/usr/bin/curl` with NTLM support |
-| `basic` | HTTPS using the extension's Node transport | HTTPS using the extension's Node transport |
+| `basic` | Node HTTP(S); HTTP requires per-connection opt-in | Node HTTP(S); HTTP requires per-connection opt-in |
 | `demo` | Simulated local output | Simulated local output |
 
 Windows requires Windows PowerShell 5.1 and permission to run the bundled `media/request.ps1`. The extension does not bypass PowerShell execution policy. macOS includes curl; Linux needs a compatible curl at `/usr/bin/curl`. The extension does not acquire Kerberos tickets, change domain settings or configure delegation. Basic authentication must already be enabled on SSRS. Corporate proxy / authentication combinations may need additional work; report reproducible failures using sanitized details.
 
-Use the service URL, normally `/reportserver`, not the `/reports` web portal. HTTPS certificates must be trusted; certificate verification remains enabled. Basic authentication requires HTTPS. Other authentication modes allow HTTP only after an explicit per-connection opt-in, because report definitions, parameters and PDF data would otherwise travel without TLS. Redirects are rejected rather than forwarding credentials to a different endpoint.
+Use the service URL, normally `/reportserver`, not the `/reports` web portal. HTTPS certificates must be trusted; certificate verification remains enabled. HTTP is supported for all authentication methods after an explicit per-connection opt-in. For Basic authentication, the warning also explains that the username and password travel without encryption. To use a legacy HTTP-only SSRS server, choose Basic, enter its `http://host/reportserver` URL, and select **Allow HTTP for this connection** when prompted. This saves `allowHttp: true` for that profile. Report definitions, parameters and PDF data also travel without TLS. Redirects are rejected rather than forwarding credentials to a different endpoint.
 
 ### Database connections and shared resources
 
