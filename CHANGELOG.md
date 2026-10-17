@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **RDL Designer**: open an RDL file with **Open Designer** to edit it through an outline tree and property forms beside the XML. Edits report and page settings, parameters with available and default values, data sources, datasets, query parameters, fields, and common text box, image, rectangle, table and subreport properties. Adds and deletes report objects, keeps RDL 2016 parameter layouts valid, and shows a to-scale drawing of the page. Changes are ordinary text edits, so Undo, Save and source control work as usual.
+- **Rename Symbol** (F2) for parameters, fields, datasets, data sources, report items, groups, variables and embedded images, including references in expressions, layout cells and aggregate scope strings.
+- **Validate on Server** checks a report definition with the active connection without rendering it.
+- New `rdlPreview.refreshOnSave` setting re-runs an open preview when its report is saved.
+- Editing, the designer and language features now work in untrusted workspaces. Previewing and server validation still require trust.
+- Diagnostics follow the RDL 2016 parameter layout rules (one cell per parameter, unique positions inside the grid) and check aggregate and lookup scope strings.
 - `.rdl` and `.rdlc` files open as the new **RDL** language. It adds expression highlighting, an Outline, diagnostics for malformed XML, duplicate names and undefined references, completion after `Parameters!`/`Fields!`/`ReportItems!` and similar, Go to Definition, folding and snippets. Red Hat XML extension features keep working through `xmlLanguageParticipants`.
 
 ## 0.1.3 — 2026-10-15

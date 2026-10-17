@@ -1,5 +1,8 @@
 import * as vscode from 'vscode';
 import assert from 'node:assert/strict';
+import os from 'node:os';
+import path from 'node:path';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 async function waitFor(condition: () => boolean, message: string): Promise<void> {
   const end = Date.now() + 15000;
   while (!condition() && Date.now() < end) await new Promise(resolve => setTimeout(resolve, 100));
@@ -23,14 +26,48 @@ async function languageFeatures(extensionUri: vscode.Uri): Promise<void> {
   const folds = await vscode.commands.executeCommand<vscode.FoldingRange[]>('vscode.executeFoldingRangeProvider', example.uri);
   assert.ok(folds.length > 0, 'Multi-line elements fold');
 }
+async function designerFeatures(api: any, extensionUri: vscode.Uri): Promise<void> {
+  const folder = await mkdtemp(path.join(os.tmpdir(), 'rdl-designer-'));
+  try {
+    const original = await readFile(path.join(extensionUri.fsPath, 'test', 'fixtures', 'sales.rdl'), 'utf8');
+    const uri = vscode.Uri.file(path.join(folder, 'sales.rdl'));
+    await writeFile(uri.fsPath, original);
+    await vscode.commands.executeCommand('vscode.openWith', uri, 'rdlPreview.designer');
+    await waitFor(() => !!api.designer()?.snapshot().ready, 'The designer webview loads and requests state');
+    const designer = api.designer();
+    assert.equal(designer.snapshot().details.title, 'Report');
+    const document = vscode.workspace.textDocuments.find(d => d.uri.toString() === uri.toString())!;
+    const year = 'Report/ReportParameters/ReportParameter[Year]';
+    await designer.send({ type: 'select', path: year });
+    assert.equal(designer.snapshot().details.title, 'Year');
+    await designer.send({ type: 'set', path: year, key: 'prompt', value: 'Fiscal year', version: document.version });
+    assert.equal(document.getText(), original.replace('<Prompt>Year</Prompt>', '<Prompt>Fiscal year</Prompt>'), 'Designer edits change only the target text');
+    assert.ok(document.isDirty, 'Designer edits mark the document dirty');
+    await designer.send({ type: 'set', path: year, key: 'prompt', value: 'Stale', version: document.version - 1 });
+    assert.ok(!document.getText().includes('Stale'), 'Edits based on an older version are rejected');
+    await designer.send({ type: 'action', path: 'Report/ReportParameters', id: 'addParameter', version: document.version });
+    assert.equal(designer.snapshot().selected, 'Report/ReportParameters/ReportParameter[Parameter1]');
+    assert.match(document.getText(), /<ParameterName>Parameter1<\/ParameterName>/);
+    // Designer changes are ordinary document edits. (The test window has no focus, so the undo command can't run here.)
+    await vscode.window.showTextDocument(document);
+    await vscode.commands.executeCommand('workbench.action.files.revert');
+    assert.equal(document.getText(), original, 'Reverting restores the file byte-for-byte');
+    assert.ok(!document.isDirty);
+    const offset = document.getText().indexOf('Parameters!Region') + 12;
+    const rename = await vscode.commands.executeCommand<vscode.WorkspaceEdit>('vscode.executeDocumentRenameProvider', uri, document.positionAt(offset), 'Area');
+    assert.equal(rename.get(uri).length, 4, 'F2 renames the declaration, two expressions and the layout cell');
+    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+  } finally { await rm(folder, { recursive: true, force: true }); }
+}
 export async function run(): Promise<void> {
   const extension = vscode.extensions.getExtension('NickMcGinnis.rdl-preview');
   assert.ok(extension, 'Extension is discoverable');
   const api = await extension.activate();
   assert.ok(api, 'Test API is exposed in test mode');
   await languageFeatures(extension.extensionUri);
+  await designerFeatures(api, extension.extensionUri);
   const commands = await vscode.commands.getCommands();
-  for (const name of ['preview', 'manageProfiles', 'switchProfile', 'testConnection', 'demo']) assert.ok(commands.includes(`rdlPreview.${name}`));
+  for (const name of ['preview', 'manageProfiles', 'switchProfile', 'testConnection', 'demo', 'openDesigner', 'openXml', 'validate']) assert.ok(commands.includes(`rdlPreview.${name}`));
   await vscode.commands.executeCommand('rdlPreview.demo');
   await waitFor(() => api.snapshot()?.viewerReady, 'The packaged webview scripts load in VS Code');
   assert.equal(api.snapshot().demo, true); assert.equal(api.snapshot().parameterNames.length, 6);
@@ -59,5 +96,5 @@ export async function run(): Promise<void> {
   assert.ok(api.snapshot().pdfBytes > 500, 'The new execution renders');
   await vscode.workspace.getConfiguration('rdlPreview').update('profiles', [], vscode.ConfigurationTarget.Global);
   api.disposePreview();
-  console.log('Extension host: activation, RDL language features, registered commands, demo parameters, PDF output and in-panel environment switching passed.');
+  console.log('Extension host: activation, RDL language features, designer edits, revert and rename, registered commands, demo parameters, PDF output and in-panel environment switching passed.');
 }

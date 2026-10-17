@@ -13,5 +13,7 @@ Automated tests use local SOAP fixtures only. Use this checklist against a devel
 9. Edit the RDL without saving and run **Preview Report** again. Confirm the preview reflects the edit and keeps parameter values for the current environment.
 10. Add a second environment from the preview's **Environment** dropdown and switch to it there. Confirm the panel reloads parameters for the new environment, the previous PDF is cleared, overrides point at the intended database, and parameter values don't carry across environments.
 11. Restart VS Code. Connections and passwords should persist; parameter values should be cleared. Edit a connection and replace a password through Manage Connections.
+12. Open a copy of a real report in the designer beside its text. Rename a parameter, add one, move it, change a dataset query and a text box font. Check that the text editor shows small, readable edits, that Undo reverts each one, and that **Validate on Server** accepts the result. For RDL 2016 reports, confirm the parameter prompt area in the web portal matches the new order.
+13. Turn on `rdlPreview.refreshOnSave`, render a preview, edit and save the report, and confirm the preview re-renders with the same parameter values.
 
 When reporting a failure, include the extension version, VS Code version, OS, SSRS/PBIRS version, authentication method, the step that failed and a sanitized error message.

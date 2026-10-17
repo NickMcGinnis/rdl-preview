@@ -1,7 +1,7 @@
 {
   "name": "rdl-preview",
   "displayName": "RDL Preview",
-  "description": "Preview local SSRS RDL reports with parameters and saved environment profiles, with RDL language support for editing.",
+  "description": "Preview, edit and design local SSRS RDL reports: server-rendered previews with parameters and saved environments, RDL language support, and a properties designer.",
   "version": "0.1.3",
   "publisher": "NickMcGinnis",
   "license": "MIT",
@@ -37,7 +37,8 @@
   ],
   "capabilities": {
     "untrustedWorkspaces": {
-      "supported": false
+      "supported": "limited",
+      "description": "Editing, the designer and language features work in any workspace. Previewing and server validation send the report to a server, so they need a trusted workspace."
     },
     "virtualWorkspaces": false
   },
@@ -74,6 +75,21 @@
         "languageId": "rdl"
       }
     ],
+    "customEditors": [
+      {
+        "viewType": "rdlPreview.designer",
+        "displayName": "RDL Designer",
+        "selector": [
+          {
+            "filenamePattern": "*.rdl"
+          },
+          {
+            "filenamePattern": "*.rdlc"
+          }
+        ],
+        "priority": "option"
+      }
+    ],
     "commands": [
       {
         "command": "rdlPreview.preview",
@@ -100,10 +116,37 @@
         "command": "rdlPreview.demo",
         "title": "Open Demo Report",
         "category": "RDL Preview"
+      },
+      {
+        "command": "rdlPreview.openDesigner",
+        "title": "Open Designer",
+        "category": "RDL Preview",
+        "icon": "$(layout)"
+      },
+      {
+        "command": "rdlPreview.openXml",
+        "title": "Open XML",
+        "category": "RDL Preview",
+        "icon": "$(code)"
+      },
+      {
+        "command": "rdlPreview.validate",
+        "title": "Validate on Server",
+        "category": "RDL Preview"
       }
     ],
     "menus": {
       "editor/title": [
+        {
+          "command": "rdlPreview.openDesigner",
+          "when": "resourceLangId == rdl && activeEditor == workbench.editors.files.textFileEditor",
+          "group": "navigation@1"
+        },
+        {
+          "command": "rdlPreview.openXml",
+          "when": "activeCustomEditorId == rdlPreview.designer",
+          "group": "navigation@1"
+        },
         {
           "command": "rdlPreview.preview",
           "when": "resourceExtname == .rdl",
@@ -115,6 +158,25 @@
           "command": "rdlPreview.preview",
           "when": "resourceExtname == .rdl",
           "group": "navigation"
+        },
+        {
+          "command": "rdlPreview.openDesigner",
+          "when": "resourceExtname =~ /^\\.rdlc?$/i",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "rdlPreview.openDesigner",
+          "when": "resourceLangId == rdl || activeCustomEditorId == rdlPreview.designer"
+        },
+        {
+          "command": "rdlPreview.openXml",
+          "when": "activeCustomEditorId == rdlPreview.designer"
+        },
+        {
+          "command": "rdlPreview.validate",
+          "when": "resourceExtname == .rdl"
         }
       ]
     },
@@ -199,6 +261,11 @@
               }
             }
           }
+        },
+        "rdlPreview.refreshOnSave": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Re-run the open preview with the same parameter values each time its report is saved. Every refresh starts a new execution on the report server."
         }
       }
     }

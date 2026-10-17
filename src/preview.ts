@@ -61,6 +61,14 @@ export class Preview {
     if (!profile) throw new Error('That connection no longer exists.');
     await this.connections.select(profile);
   }
+  /** Starts a new execution from the current document text, rendering again if a PDF was showing. */
+  async reload(): Promise<void> {
+    if (this.disposed || !this.profile) return;
+    const rendered = !!this.pdf, values = this.values;
+    this.profile = undefined;
+    await this.reconnect();
+    if (rendered && this.loaded && !this.disposed) await this.submit(values, true);
+  }
   /** Follows the active connection, starting a new execution in this panel when it changes. */
   async reconnect(): Promise<void> {
     if (this.disposed) return;

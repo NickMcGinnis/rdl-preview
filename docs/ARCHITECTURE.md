@@ -8,9 +8,13 @@
 | `ssrs.ts` | SOAP envelopes and decoding of SSRS execution metadata. |
 | `transport.ts` | Authenticated HTTP via Node (Basic), curl (NTLM/SPNEGO) or PowerShell (Windows). |
 | `rdl.ts` | Edits to the copy of the RDL sent to the server. |
-| `rdl-model.ts` | Tolerant XML tokenizer with exact source ranges, shared by preview and language features. |
-| `rdl-analysis.ts` | Outline, declarations, references and diagnostics for the RDL language (no `vscode` dependency). |
-| `language.ts` | Registers the RDL language providers and diagnostics. See [RDL editing](EDITOR.md). |
+| `rdl-model.ts` | Tolerant XML tokenizer with exact source ranges and path addressing, shared by preview, language features and the designer. |
+| `rdl-analysis.ts` | Outline, declarations, references, scope strings and diagnostics for the RDL language (no `vscode` dependency). |
+| `rdl-rename.ts` | Rename with references, used by F2 and the designer. |
+| `rdl-edit.ts` | Minimal, style-preserving text edits to the RDL. |
+| `rdl-designer.ts` | Designer tree, property forms, actions and layout drawing (no `vscode` dependency). |
+| `language.ts` | Registers the RDL language providers and diagnostics. |
+| `designer.ts` | The RDL Designer custom text editor. See [RDL editing](EDITOR.md). |
 | `parameters.ts` | Parameter validation and dependency invalidation. |
 | `demo.ts` | Offline simulated session. |
 

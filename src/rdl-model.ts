@@ -76,3 +76,29 @@ export function childText(xml: string, e: XmlElement, name: string): string | un
   const child = e.children.find(c => c.name === name);
   return child && textOf(xml, child).text.trim();
 }
+
+// Stable node addresses that survive edits elsewhere: `Report/DataSets/DataSet[Sales]/Fields/Field[Amount]`.
+// Named elements use their Name; others their position among same-named siblings (`ReportSection#1`).
+const stepTag = (e: XmlElement, root: XmlElement): string => prefixOf(e) === prefixOf(root) ? e.name : e.tag;
+function step(e: XmlElement, root: XmlElement): string {
+  const tag = stepTag(e, root);
+  const name = attribute(e, 'Name');
+  if (name) return `${tag}[${encodeURIComponent(name.value)}]`;
+  const index = e.parent ? e.parent.children.filter(c => stepTag(c, root) === tag && !attribute(c, 'Name')).indexOf(e) : 0;
+  return index > 0 ? `${tag}#${index}` : tag;
+}
+export function pathOf(e: XmlElement): string {
+  const chain: XmlElement[] = [];
+  for (let at: XmlElement | undefined = e; at; at = at.parent) chain.unshift(at);
+  return chain.map(c => step(c, chain[0])).join('/');
+}
+export function resolvePath(root: XmlElement | undefined, path: string): XmlElement | undefined {
+  const [first, ...rest] = path.split('/');
+  if (!root || first !== step(root, root)) return undefined;
+  let at: XmlElement | undefined = root;
+  for (const part of rest) {
+    at = at.children.find(c => step(c, root) === part);
+    if (!at) return undefined;
+  }
+  return at;
+}

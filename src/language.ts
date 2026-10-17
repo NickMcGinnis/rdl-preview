@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { analyzeRdl, completionsAt, definitionsAt, type Analysis, type OutlineItem, type OutlineKind } from './rdl-analysis';
+import { declarationAt, renameEdits } from './rdl-rename';
 
 // Also serve .rdl files a user has associated with the XML language.
 export const RDL_SELECTOR: vscode.DocumentSelector = [{ language: 'rdl' }, { language: 'xml', pattern: '**/*.{rdl,rdlc}' }];
@@ -10,15 +11,17 @@ const KINDS: Record<OutlineKind, vscode.SymbolKind> = {
   subreport: vscode.SymbolKind.Module, line: vscode.SymbolKind.Constant, reportItem: vscode.SymbolKind.Object
 };
 
+const cache = new WeakMap<vscode.TextDocument, { version: number; analysis: Analysis }>();
+/** Analysis of the document's current version, shared by the language features and the designer. */
+export function analysisOf(document: vscode.TextDocument): Analysis {
+  const hit = cache.get(document);
+  if (hit?.version === document.version) return hit.analysis;
+  const analysis = analyzeRdl(document.getText());
+  cache.set(document, { version: document.version, analysis });
+  return analysis;
+}
+
 export function registerLanguage(context: vscode.ExtensionContext): void {
-  const cache = new WeakMap<vscode.TextDocument, { version: number; analysis: Analysis }>();
-  const analysisOf = (document: vscode.TextDocument): Analysis => {
-    const hit = cache.get(document);
-    if (hit?.version === document.version) return hit.analysis;
-    const analysis = analyzeRdl(document.getText());
-    cache.set(document, { version: document.version, analysis });
-    return analysis;
-  };
   const range = (document: vscode.TextDocument, start: number, end: number) => new vscode.Range(document.positionAt(start), document.positionAt(end));
   const symbol = (document: vscode.TextDocument, item: OutlineItem): vscode.DocumentSymbol => {
     const result = new vscode.DocumentSymbol(item.name, item.detail, KINDS[item.kind], range(document, item.start, item.end), range(document, item.selectionStart, item.selectionEnd));
@@ -63,6 +66,22 @@ export function registerLanguage(context: vscode.ExtensionContext): void {
         });
       }
     }, '!'),
+    vscode.languages.registerRenameProvider(RDL_SELECTOR, {
+      prepareRename(document, position) {
+        const target = declarationAt(analysisOf(document), document.offsetAt(position));
+        if (!target) throw new Error('Rename a parameter, field, dataset, data source, report item, group, variable or embedded image.');
+        return { range: range(document, target.start, target.end), placeholder: target.declaration.name };
+      },
+      provideRenameEdits(document, position, newName) {
+        const analysis = analysisOf(document), target = declarationAt(analysis, document.offsetAt(position));
+        if (!target) return undefined;
+        const { edits, skipped } = renameEdits(analysis, target.declaration, newName.trim());
+        if (skipped) void vscode.window.showWarningMessage(`RDL: ${skipped} Fields!${target.declaration.name} reference${skipped === 1 ? '' : 's'} could belong to another dataset and ${skipped === 1 ? 'was' : 'were'} not renamed.`);
+        const edit = new vscode.WorkspaceEdit();
+        for (const e of edits) edit.replace(document.uri, range(document, e.start, e.end), e.text);
+        return edit;
+      }
+    }),
     vscode.languages.registerFoldingRangeProvider(RDL_SELECTOR, {
       provideFoldingRanges(document) {
         const ranges: vscode.FoldingRange[] = [];

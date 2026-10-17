@@ -73,7 +73,13 @@ test('parameter layout cells must name parameters, and parameters need a cell', 
   assert.deepEqual(messages(report('', layout('Year'))), []);
   assert.deepEqual(messages(report('', layout('Yr'))), [
     'error: Yr: Report parameter "Yr" is not defined.',
-    'warning: Year: Report parameter "Year" has no cell in ReportParametersLayout. SSRS expects one cell definition per parameter.'
+    'error: Year: Report parameter "Year" has no cell in ReportParametersLayout. Every parameter needs exactly one cell.'
+  ]);
+  const crowded = report('', layout('Year').replace('</CellDefinitions>', '<CellDefinition><ColumnIndex>0</ColumnIndex><RowIndex>1</RowIndex><ParameterName>Year</ParameterName></CellDefinition><CellDefinition><ColumnIndex>0</ColumnIndex><RowIndex>0</RowIndex></CellDefinition></CellDefinitions>'));
+  assert.deepEqual(messages(crowded).map(m => m.replace(/^error: .*?: /, '')), [
+    'Report parameter "Year" has more than one cell in ReportParametersLayout.',
+    'Row 1 is outside the parameter grid, which has 1 row.',
+    'More than one parameter cell uses row 0, column 0.'
   ]);
 });
 test('designer metadata and foreign default namespaces are ignored', () => {
@@ -99,6 +105,13 @@ test('reference ranges map through entities and CDATA back to the source', () =>
   assert.deepEqual(analysis.references.filter(r => ['Fields', 'Parameters'].includes(r.collection)).map(r => xml.slice(r.start, r.end)), ['Region', 'Year']);
   const [e] = parseElements('<a>x&#x41;&lt;<!-- c -->y</a>');
   assert.equal(textOf('<a>x&#x41;&lt;<!-- c -->y</a>', e).text, 'xA<y');
+});
+test('aggregate and lookup scope strings are tracked and checked', () => {
+  const xml = report(tablix('=Sum(Fields!Amount.Value, "Sales") + CountRows("Grid") + Lookup(1, 1, 1, "Years") + Sum(Fields!Amount.Value, "Nope") + Format(1, "Sales") + Sum(Len("Sales"))'));
+  const analysis = analyzeRdl(xml);
+  assert.deepEqual(analysis.scopes.map(s => xml.slice(s.start, s.end)), ['Sales', 'Grid', 'Years', 'Nope']);
+  assert.deepEqual(messages(xml), ['warning: Nope: Scope "Nope" is not a dataset, group or data region in this report.']);
+  assert.equal(definitionsAt(analysis, xml.indexOf('"Years")') + 2)[0].collection, 'DataSets');
 });
 test('go to definition resolves expression and element references', () => {
   const xml = report(tablix('=Fields!Region.Value'));

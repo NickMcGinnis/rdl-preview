@@ -18,13 +18,13 @@ Requires VS Code 1.96 or later. Run **RDL Preview: Open Demo Report** to try the
 
 ## Preview a report
 
-1. Open an `.rdl` file in a trusted workspace.
+1. Open an `.rdl` file in a trusted workspace. (Editing and the designer also work in untrusted workspaces; previewing doesn't.)
 2. Run **RDL Preview: Manage Connections** and add a connection.
 3. Run **RDL Preview: Test Connection** to check the execution endpoint responds.
 4. Run **RDL Preview: Preview Report**, or click the report icon in the editor title bar (also in the file context menu).
 5. Fill in parameters and click **Render preview**.
 
-Parameters can be changed and re-rendered in place. After editing the RDL, run **Preview Report** again; unsaved edits are included.
+Parameters can be changed and re-rendered in place. After editing the RDL, run **Preview Report** again (unsaved edits are included), or turn on `rdlPreview.refreshOnSave` to refresh the preview each time you save.
 
 Supported parameter types are String, Integer, Float, Boolean and DateTime, including available-value lists, defaults, multiple values, null and blank. Enter dates as `2026-10-15` or `2026-10-15T09:30:00`, and free-form multi-value parameters one value per line. Changing an upstream parameter refreshes dependent choices. Hidden parameters use their server defaults.
 
@@ -37,10 +37,22 @@ The viewer supports page navigation, zoom and **Save PDF**. The inline preview i
 - XML highlighting, plus highlighting of expressions (element text starting with `=`) and their `Parameters!`, `Fields!` and `ReportItems!` references.
 - An Outline and breadcrumbs showing data sources, datasets and fields, parameters, and the header, body and footer report items.
 - Problems for malformed XML, duplicate names, and references to parameters, fields, report items, datasets, data sources or variables that don't exist. Names are case-sensitive, as in SSRS.
-- Completion after `Parameters!`, `Fields!`, `ReportItems!`, `Globals!` and similar, and **Go to Definition** from a reference to its declaration.
+- Completion after `Parameters!`, `Fields!`, `ReportItems!`, `Globals!` and similar, **Go to Definition** from a reference to its declaration, and **Rename Symbol** (F2), which updates every reference.
 - Folding for every multi-line element, and snippets starting with `rdl-` for parameters, data sources, datasets, fields, query parameters and textboxes.
 
-If the Red Hat XML extension is installed, its features (formatting, tag completion, and schema validation once you associate the RDL XSD) still work on RDL files. See [RDL editing](docs/EDITOR.md) for details and the planned designer.
+If the Red Hat XML extension is installed, its features (formatting, tag completion, and schema validation once you associate the RDL XSD) still work on RDL files.
+
+### Designer
+
+Click **Open Designer** in the editor title bar (or use **Open With…**) to edit a report through a tree and property forms instead of XML. It opens beside the text editor and writes ordinary edits into the same file, so Undo, Save and source control work as usual. Selecting an item in either view selects it in the other.
+
+The designer edits report and page settings, parameters (including available and default values), data sources, datasets and query parameters, fields, and text box, image, rectangle, table and subreport properties such as position, value and font. It also adds and deletes parameters, data sources, datasets, fields, text boxes, page headers and footers, and embedded images. Renaming an item updates every expression that uses it. A to-scale drawing shows where items sit on the page.
+
+Table rows, columns and groups, charts and maps are still edited as XML. The designer can't run queries, so list a dataset's columns with **Add fields…**.
+
+**Validate on Server** checks the report definition with the active connection without rendering it. Set `rdlPreview.refreshOnSave` to re-run an open preview each time its report is saved.
+
+See [RDL editing](docs/EDITOR.md) for details.
 
 ## Connections
 
@@ -116,7 +128,7 @@ Temporary executions need absolute catalog paths, so relative shared data source
 - The account needs the system-level **ExecuteReportDefinition** permission. Test Connection does not check it.
 - Shared data sources, shared datasets, subreports and custom assemblies must already be deployed. Project-local `.rds`/`.rsd` files are not used.
 - Uses the `ReportExecution2005.asmx` SOAP API. Power BI Service and `.pbix` reports are out of scope.
-- Rendering uses the server's fonts and renderer; there is no local renderer or visual designer.
+- Rendering uses the server's fonts and renderer; there is no local renderer, and the designer has no drag-and-drop layout surface.
 - Field checks only confirm that some dataset declares the field; data-region and aggregate scopes aren't checked locally.
 - Responses are limited to 100 MB, including base64/XML overhead.
 - Closing the panel cancels the client request, but the server may keep processing until it finishes.
