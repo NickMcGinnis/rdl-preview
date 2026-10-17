@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 — 2026-10-17
 
 - **RDL Designer**: open an RDL file with **Open Designer** to edit it through an outline tree and property forms beside the XML. Edits report and page settings, parameters with available and default values, data sources, datasets, query parameters, fields, and common text box, image, rectangle, table and subreport properties. Adds and deletes report objects, keeps RDL 2016 parameter layouts valid, and shows a to-scale drawing of the page. Changes are ordinary text edits, so Undo, Save and source control work as usual.
 - **Rename Symbol** (F2) for parameters, fields, datasets, data sources, report items, groups, variables and embedded images, including references in expressions, layout cells and aggregate scope strings.

@@ -6,8 +6,9 @@ import { Draft, type TextEdit } from '../src/rdl-edit';
 import { applyAction, applyField, describe, designerTree, nodeAt, readOnlyReason, wireframe, type TreeNode } from '../src/rdl-designer';
 import { declarationAt } from '../src/rdl-rename';
 
-const sales = readFileSync('test/fixtures/sales.rdl', 'utf8');
-const demo = readFileSync('examples/parameter-demo.rdl', 'utf8');
+// Git may check fixtures out with CRLF on Windows. Tests use LF text; CRLF is covered explicitly below.
+const sales = readFileSync('test/fixtures/sales.rdl', 'utf8').replace(/\r\n/g, '\n');
+const demo = readFileSync('examples/parameter-demo.rdl', 'utf8').replace(/\r\n/g, '\n');
 const apply = (xml: string, edits: TextEdit[]) => [...edits].sort((a, b) => b.start - a.start).reduce((text, e) => text.slice(0, e.start) + e.text + text.slice(e.end), xml);
 const field = (xml: string, path: string, key: string, value: unknown) => { const change = applyField(analyzeRdl(xml), path, key, value); return { xml: apply(xml, change.edits), change }; };
 const action = (xml: string, path: string, id: string, input?: unknown) => { const change = applyAction(analyzeRdl(xml), path, id, input); return { xml: apply(xml, change.edits), change }; };
@@ -53,6 +54,15 @@ test('designer edits only the targeted text', () => {
   assert.equal(field(xml, YEAR, 'prompt', 'Fiscal year').change.edits.length, 0, 'Setting the same value is a no-op');
   assert.equal(field(sales, YEAR, 'nullable', 'true').xml, sales.replace('<DataType>Integer</DataType>\n', '<DataType>Integer</DataType>\n      <Nullable>true</Nullable>\n'));
   assert.equal(field(field(sales, YEAR, 'nullable', 'true').xml, YEAR, 'nullable', 'false').xml, sales, 'Clearing a checkbox removes the element again');
+});
+test('designer edits keep CRLF line endings', () => {
+  const crlf = sales.replace(/\n/g, '\r\n');
+  let xml = action(crlf, PARAMS, 'addParameter').xml;
+  xml = field(xml, TITLE, 'fontWeight', 'Bold').xml;
+  xml = action(xml, SALES, 'addFields', 'A, B').xml;
+  xml = action(xml, YEAR, 'delete').xml;
+  assert.doesNotMatch(xml, /[^\r]\n/, 'Every line still ends with CRLF');
+  assert.deepEqual(issues(xml), []);
 });
 test('parameter details reflect query and static values', () => {
   const details = describe(analyzeRdl(sales), REGION)!;
