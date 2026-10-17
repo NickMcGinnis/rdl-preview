@@ -5,11 +5,30 @@ async function waitFor(condition: () => boolean, message: string): Promise<void>
   while (!condition() && Date.now() < end) await new Promise(resolve => setTimeout(resolve, 100));
   assert.ok(condition(), message);
 }
+async function languageFeatures(extensionUri: vscode.Uri): Promise<void> {
+  const example = await vscode.workspace.openTextDocument(vscode.Uri.joinPath(extensionUri, 'examples', 'parameter-demo.rdl'));
+  assert.equal(example.languageId, 'rdl', '.rdl files open as the RDL language');
+  const symbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[]>('vscode.executeDocumentSymbolProvider', example.uri);
+  assert.deepEqual(symbols.map(s => s.name), ['Parameters', 'Body']);
+  assert.equal(symbols[0].children.length, 6);
+  const text = '<Report xmlns="urn:rdl"><ReportParameters><ReportParameter Name="Year"><DataType>Integer</DataType></ReportParameter></ReportParameters><Body><ReportItems><Textbox Name="T"><Value>=Parameters!Year.Value &amp; Parameters!Nope.Value &amp; Parameters!</Value></Textbox></ReportItems></Body></Report>';
+  const document = await vscode.workspace.openTextDocument({ language: 'rdl', content: text });
+  await waitFor(() => vscode.languages.getDiagnostics(document.uri).length > 0, 'Diagnostics are published for RDL documents');
+  assert.deepEqual(vscode.languages.getDiagnostics(document.uri).map(d => document.getText(d.range)), ['Nope']);
+  const completions = await vscode.commands.executeCommand<vscode.CompletionList>('vscode.executeCompletionItemProvider', document.uri, document.positionAt(text.indexOf('</Value>')), '!');
+  assert.ok(completions.items.some(i => i.label === 'Year'), 'Parameters! completes report parameter names');
+  const definitions = await vscode.commands.executeCommand<vscode.Location[]>('vscode.executeDefinitionProvider', document.uri, document.positionAt(text.indexOf('Year.Value')));
+  assert.equal(definitions.length, 1);
+  assert.equal(document.getText(definitions[0].range), 'Year');
+  const folds = await vscode.commands.executeCommand<vscode.FoldingRange[]>('vscode.executeFoldingRangeProvider', example.uri);
+  assert.ok(folds.length > 0, 'Multi-line elements fold');
+}
 export async function run(): Promise<void> {
   const extension = vscode.extensions.getExtension('NickMcGinnis.rdl-preview');
   assert.ok(extension, 'Extension is discoverable');
   const api = await extension.activate();
   assert.ok(api, 'Test API is exposed in test mode');
+  await languageFeatures(extension.extensionUri);
   const commands = await vscode.commands.getCommands();
   for (const name of ['preview', 'manageProfiles', 'switchProfile', 'testConnection', 'demo']) assert.ok(commands.includes(`rdlPreview.${name}`));
   await vscode.commands.executeCommand('rdlPreview.demo');
@@ -40,5 +59,5 @@ export async function run(): Promise<void> {
   assert.ok(api.snapshot().pdfBytes > 500, 'The new execution renders');
   await vscode.workspace.getConfiguration('rdlPreview').update('profiles', [], vscode.ConfigurationTarget.Global);
   api.disposePreview();
-  console.log('Extension host: activation, registered commands, demo parameters, PDF output and in-panel environment switching passed.');
+  console.log('Extension host: activation, RDL language features, registered commands, demo parameters, PDF output and in-panel environment switching passed.');
 }

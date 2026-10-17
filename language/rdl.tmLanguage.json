@@ -1,0 +1,78 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "RDL",
+  "scopeName": "text.xml.rdl",
+  "patterns": [
+    { "include": "#expression" },
+    { "include": "text.xml" }
+  ],
+  "repository": {
+    "expression": {
+      "comment": "Element text starting with = is a VB expression. Ends at the next tag.",
+      "begin": "(?<![-\\]?]>)(?<=>)\\s*(=)",
+      "beginCaptures": { "1": { "name": "keyword.operator.expression.rdl" } },
+      "end": "(?=<)",
+      "name": "meta.embedded.expression.rdl",
+      "patterns": [
+        { "include": "#string" },
+        { "include": "#comment" },
+        { "include": "#reference" },
+        { "include": "#keyword" },
+        { "include": "#call" },
+        { "include": "#number" },
+        { "include": "#operator" },
+        { "include": "text.xml#entity" }
+      ]
+    },
+    "string": {
+      "begin": "\"",
+      "end": "\"(?!\")|(?=<)",
+      "name": "string.quoted.double.rdl",
+      "patterns": [
+        { "match": "\"\"", "name": "constant.character.escape.rdl" },
+        { "include": "text.xml#entity" }
+      ]
+    },
+    "comment": {
+      "match": "'.*?(?=<|$)",
+      "name": "comment.line.apostrophe.rdl"
+    },
+    "reference": {
+      "patterns": [
+        {
+          "match": "(?i)(?<![\\w.])(Parameters|Fields|ReportItems|Globals|User|Variables|DataSets|DataSources)\\s*(!)\\s*(\\w+|\\[[^\\]<]*\\])",
+          "captures": {
+            "1": { "name": "variable.language.collection.rdl" },
+            "2": { "name": "punctuation.accessor.rdl" },
+            "3": { "name": "variable.other.member.rdl" }
+          }
+        },
+        {
+          "match": "(?i)(?<![\\w.])(Parameters|Fields|ReportItems|Globals|User|Variables|DataSets|DataSources|Code|Me)\\b",
+          "name": "variable.language.collection.rdl"
+        }
+      ]
+    },
+    "keyword": {
+      "patterns": [
+        { "match": "(?i)\\b(Nothing|True|False)\\b", "name": "constant.language.rdl" },
+        { "match": "(?i)\\b(And|AndAlso|Or|OrElse|Not|Xor|Mod|Is|IsNot|Like|TypeOf)\\b", "name": "keyword.operator.word.rdl" },
+        { "match": "(?i)\\b(If|Then|Else|New|CType|DirectCast|TryCast|GetType)\\b", "name": "keyword.other.rdl" }
+      ]
+    },
+    "call": {
+      "match": "\\b([A-Za-z_]\\w*)\\s*(?=\\()",
+      "captures": { "1": { "name": "entity.name.function.rdl" } }
+    },
+    "number": {
+      "match": "\\b\\d+(?:\\.\\d+)?(?:[eE][-+]?\\d+)?[DFRSIL@#!%&]?\\b",
+      "name": "constant.numeric.rdl"
+    },
+    "operator": {
+      "patterns": [
+        { "match": "&amp;", "name": "keyword.operator.concatenation.rdl" },
+        { "match": "&lt;&gt;|&lt;=|&gt;=|&lt;|&gt;|[-+*/\\\\^=]", "name": "keyword.operator.rdl" }
+      ]
+    }
+  }
+}

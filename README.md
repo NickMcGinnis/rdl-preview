@@ -30,6 +30,18 @@ Supported parameter types are String, Integer, Float, Boolean and DateTime, incl
 
 The viewer supports page navigation, zoom and **Save PDF**. The inline preview is a canvas, so save the PDF to search or select text or to use a screen reader.
 
+## Edit RDL
+
+`.rdl` and `.rdlc` files open as the **RDL** language, with:
+
+- XML highlighting, plus highlighting of expressions (element text starting with `=`) and their `Parameters!`, `Fields!` and `ReportItems!` references.
+- An Outline and breadcrumbs showing data sources, datasets and fields, parameters, and the header, body and footer report items.
+- Problems for malformed XML, duplicate names, and references to parameters, fields, report items, datasets, data sources or variables that don't exist. Names are case-sensitive, as in SSRS.
+- Completion after `Parameters!`, `Fields!`, `ReportItems!`, `Globals!` and similar, and **Go to Definition** from a reference to its declaration.
+- Folding for every multi-line element, and snippets starting with `rdl-` for parameters, data sources, datasets, fields, query parameters and textboxes.
+
+If the Red Hat XML extension is installed, its features (formatting, tag completion, and schema validation once you associate the RDL XSD) still work on RDL files. See [RDL editing](docs/EDITOR.md) for details and the planned designer.
+
 ## Connections
 
 The preview header shows the active environment. Pick another from its **Environment** dropdown to start a new execution in the same panel; the dropdown also adds and manages connections. **Switch Environment** in the Command Palette does the same.
@@ -104,7 +116,8 @@ Temporary executions need absolute catalog paths, so relative shared data source
 - The account needs the system-level **ExecuteReportDefinition** permission. Test Connection does not check it.
 - Shared data sources, shared datasets, subreports and custom assemblies must already be deployed. Project-local `.rds`/`.rsd` files are not used.
 - Uses the `ReportExecution2005.asmx` SOAP API. Power BI Service and `.pbix` reports are out of scope.
-- Rendering uses the server's fonts and renderer; there is no local renderer or designer.
+- Rendering uses the server's fonts and renderer; there is no local renderer or visual designer.
+- Field checks only confirm that some dataset declares the field; data-region and aggregate scopes aren't checked locally.
 - Responses are limited to 100 MB, including base64/XML overhead.
 - Closing the panel cancels the client request, but the server may keep processing until it finishes.
 - Demo mode reads static parameter definitions and produces a labeled placeholder PDF. It does not evaluate expressions, run queries or render the report.
@@ -122,7 +135,7 @@ npm run package
 
 Press **F5** to launch an Extension Development Host. The extension-host test downloads VS Code and uses a temporary profile; on Linux run it under `xvfb-run -a`, and set `VSCODE_EXECUTABLE_PATH` to reuse an existing install. To open the webview in a browser, build and then run `node --import tsx scripts/ui-harness.mts`.
 
-See also [architecture](docs/ARCHITECTURE.md) and [manual testing](docs/MANUAL-TESTING.md).
+See also [architecture](docs/ARCHITECTURE.md), [RDL editing](docs/EDITOR.md) and [manual testing](docs/MANUAL-TESTING.md).
 
 ## Privacy
 

@@ -1,0 +1,95 @@
+{
+  "Report parameter": {
+    "prefix": "rdl-parameter",
+    "description": "ReportParameter inside <ReportParameters>. In 2016+ reports, also add a CellDefinition to <ReportParametersLayout>.",
+    "body": [
+      "<ReportParameter Name=\"${1:Parameter1}\">",
+      "\t<DataType>${2|String,Integer,Float,Boolean,DateTime|}</DataType>",
+      "\t<Prompt>${3:$1}</Prompt>",
+      "</ReportParameter>"
+    ]
+  },
+  "Embedded data source": {
+    "prefix": "rdl-datasource",
+    "description": "DataSource with an embedded connection, inside <DataSources>. Keep credentials out of the connection string.",
+    "body": [
+      "<DataSource Name=\"${1:DataSource1}\">",
+      "\t<ConnectionProperties>",
+      "\t\t<DataProvider>${2|SQL,OLEDB,ODBC,ORACLE,XML,SHAREPOINTLIST|}</DataProvider>",
+      "\t\t<ConnectString>${3:Data Source=server;Initial Catalog=database}</ConnectString>",
+      "\t\t<IntegratedSecurity>true</IntegratedSecurity>",
+      "\t</ConnectionProperties>",
+      "</DataSource>"
+    ]
+  },
+  "Shared data source": {
+    "prefix": "rdl-datasource-shared",
+    "description": "DataSource that references a shared data source on the server, inside <DataSources>.",
+    "body": [
+      "<DataSource Name=\"${1:DataSource1}\">",
+      "\t<DataSourceReference>${2:/Data Sources/Name}</DataSourceReference>",
+      "</DataSource>"
+    ]
+  },
+  "Dataset": {
+    "prefix": "rdl-dataset",
+    "description": "DataSet with a query and fields, inside <DataSets>.",
+    "body": [
+      "<DataSet Name=\"${1:DataSet1}\">",
+      "\t<Query>",
+      "\t\t<DataSourceName>${2:DataSource1}</DataSourceName>",
+      "\t\t<CommandText>${3:SELECT Id, Name FROM dbo.Table}</CommandText>",
+      "\t</Query>",
+      "\t<Fields>",
+      "\t\t<Field Name=\"${4:Id}\">",
+      "\t\t\t<DataField>${5:$4}</DataField>",
+      "\t\t</Field>",
+      "\t</Fields>",
+      "</DataSet>"
+    ]
+  },
+  "Field": {
+    "prefix": "rdl-field",
+    "description": "Field inside a DataSet's <Fields>.",
+    "body": [
+      "<Field Name=\"${1:Field1}\">",
+      "\t<DataField>${2:$1}</DataField>",
+      "</Field>"
+    ]
+  },
+  "Query parameter": {
+    "prefix": "rdl-query-parameter",
+    "description": "QueryParameter inside a Query's <QueryParameters>.",
+    "body": [
+      "<QueryParameter Name=\"${1:@Parameter1}\">",
+      "\t<Value>=Parameters!${2:Parameter1}.Value</Value>",
+      "</QueryParameter>"
+    ]
+  },
+  "Textbox": {
+    "prefix": "rdl-textbox",
+    "description": "Textbox report item inside <ReportItems>.",
+    "body": [
+      "<Textbox Name=\"${1:Textbox1}\">",
+      "\t<CanGrow>true</CanGrow>",
+      "\t<KeepTogether>true</KeepTogether>",
+      "\t<Paragraphs>",
+      "\t\t<Paragraph>",
+      "\t\t\t<TextRuns>",
+      "\t\t\t\t<TextRun>",
+      "\t\t\t\t\t<Value>${2:=Fields!Name.Value}</Value>",
+      "\t\t\t\t\t<Style />",
+      "\t\t\t\t</TextRun>",
+      "\t\t\t</TextRuns>",
+      "\t\t\t<Style />",
+      "\t\t</Paragraph>",
+      "\t</Paragraphs>",
+      "\t<Top>${3:0in}</Top>",
+      "\t<Left>${4:0in}</Left>",
+      "\t<Height>${5:0.25in}</Height>",
+      "\t<Width>${6:1in}</Width>",
+      "\t<Style />",
+      "</Textbox>$0"
+    ]
+  }
+}

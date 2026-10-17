@@ -8,6 +8,9 @@
 | `ssrs.ts` | SOAP envelopes and decoding of SSRS execution metadata. |
 | `transport.ts` | Authenticated HTTP via Node (Basic), curl (NTLM/SPNEGO) or PowerShell (Windows). |
 | `rdl.ts` | Edits to the copy of the RDL sent to the server. |
+| `rdl-model.ts` | Tolerant XML tokenizer with exact source ranges, shared by preview and language features. |
+| `rdl-analysis.ts` | Outline, declarations, references and diagnostics for the RDL language (no `vscode` dependency). |
+| `language.ts` | Registers the RDL language providers and diagnostics. See [RDL editing](EDITOR.md). |
 | `parameters.ts` | Parameter validation and dependency invalidation. |
 | `demo.ts` | Offline simulated session. |
 

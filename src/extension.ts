@@ -3,9 +3,11 @@ import { Connections, DEMO_PROFILE } from './connections';
 import { Preview } from './preview';
 import { SsrsSession } from './ssrs';
 import { createTransport } from './transport';
+import { registerLanguage } from './language';
 import type { ParameterValues } from './types';
 
 export function activate(context: vscode.ExtensionContext) {
+  registerLanguage(context);
   const connections = new Connections(context);
   const remembered = new Map<string, ParameterValues>();
   let current: Preview | undefined;

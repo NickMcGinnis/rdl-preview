@@ -1,31 +1,11 @@
 import path from 'node:path';
 import type { Profile } from './types';
 import { assertXml, escapeXml, parseXml, xmlText } from './xml';
+import { parseElements, type XmlElement as Element } from './rdl-model';
 
-interface Element { name: string; tag: string; start: number; openEnd: number; closeStart: number; end: number; attrs: string; parent?: Element }
-// Track exact ranges rather than serializing the entire document. Unknown elements,
-// namespace declarations, designer metadata and formatting survive unchanged.
-function elements(xml: string): Element[] {
-  const all: Element[] = [], stack: Element[] = [];
-  const tokens = /<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<\?[\s\S]*?\?>|<\/?[A-Za-z_][\w.:-]*(?:\s+(?:[^>"']|"[^"]*"|'[^']*')*)?\s*\/?>/g;
-  for (const m of xml.matchAll(tokens)) {
-    const raw = m[0];
-    if (raw.startsWith('<!') || raw.startsWith('<?')) continue;
-    if (raw.startsWith('</')) {
-      const e = stack.pop();
-      if (e) { e.closeStart = m.index!; e.end = m.index! + raw.length; }
-      continue;
-    }
-    const match = /^<([\w.:-]+)([\s\S]*?)\/?\s*>$/.exec(raw)!;
-    const e: Element = { name: match[1].split(':').pop()!, tag: match[1], attrs: match[2], start: m.index!, openEnd: m.index! + raw.length, closeStart: m.index! + raw.length, end: m.index! + raw.length, parent: stack.at(-1) };
-    all.push(e);
-    if (!/\/\s*>$/.test(raw)) stack.push(e);
-  }
-  return all;
-}
 export function prepareRdl(xml: string, profile: Profile): string {
   assertXml(xml);
-  const nodes = elements(xml);
+  const nodes = parseElements(xml);
   if (nodes[0]?.name !== 'Report') throw new Error('The selected XML file is not an RDL Report.');
   const edits: { start: number; end: number; text: string }[] = [];
   const ignored = new Set<Element>();

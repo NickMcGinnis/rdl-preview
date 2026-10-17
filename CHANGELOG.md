@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- `.rdl` and `.rdlc` files open as the new **RDL** language. It adds expression highlighting, an Outline, diagnostics for malformed XML, duplicate names and undefined references, completion after `Parameters!`/`Fields!`/`ReportItems!` and similar, Go to Definition, folding and snippets. Red Hat XML extension features keep working through `xmlLanguageParticipants`.
+
 ## 0.1.3 — 2026-10-15
 
 - The editor title bar shows a report icon instead of the **Preview Report** label.
