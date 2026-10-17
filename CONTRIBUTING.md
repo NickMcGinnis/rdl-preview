@@ -2,6 +2,8 @@
 
 Use Node.js 24, run `npm ci`, and make sure `npm run verify` and `npm run test:extension` pass before opening a pull request.
 
+npm skips dependency install scripts unless `allowScripts` in `package.json` approves them. If a dependency change adds one, review the script, then record a decision with `npm install-scripts approve <pkg>` or `npm install-scripts deny <pkg>` (npm 11.19 or later).
+
 Use synthetic RDL files and fictional hosts in tests, issues and screenshots. Don't commit credentials, internal URLs, real reports or PDFs.
 
 The fixture tests can't prove compatibility with a real report server. For changes to authentication or server behavior, say which SSRS/PBIRS versions, operating systems and auth methods you tested against.
