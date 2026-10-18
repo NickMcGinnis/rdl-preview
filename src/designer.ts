@@ -28,12 +28,15 @@ export class Designer {
   private ready = false;
   private refreshTimer?: NodeJS.Timeout;
   private syncTimer?: NodeJS.Timeout;
+  private editing: Promise<unknown> = Promise.resolve();
+  private readonly probes = new Map<number, (result: unknown) => void>();
+  private probeId = 0;
   private readonly subscriptions: vscode.Disposable[] = [];
   constructor(private readonly context: vscode.ExtensionContext, readonly document: vscode.TextDocument, private readonly panel: vscode.WebviewPanel) {
     const media = vscode.Uri.joinPath(context.extensionUri, 'media');
     panel.webview.options = { enableScripts: true, localResourceRoots: [media] };
     const resource = (name: string) => panel.webview.asWebviewUri(vscode.Uri.joinPath(media, name)).toString();
-    panel.webview.html = designerHtml(resource, panel.webview.cspSource, randomBytes(24).toString('base64'));
+    panel.webview.html = designerHtml(resource, panel.webview.cspSource, randomBytes(24).toString('base64'), context.extensionMode === vscode.ExtensionMode.Test);
     this.subscriptions.push(
       panel.webview.onDidReceiveMessage(message => void this.receive(message)),
       vscode.workspace.onDidChangeTextDocument(event => {
@@ -81,12 +84,18 @@ export class Designer {
       editor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
     }
   }
+  /** Test only: runs steps against the webview's controls and returns what it shows. */
+  probe(steps: unknown[]): Promise<any> {
+    const id = ++this.probeId;
+    return new Promise(resolve => { this.probes.set(id, resolve); void this.panel.webview.postMessage({ type: 'probe', id, steps }); });
+  }
   /** Handles a webview message. Exposed for the extension-host test. */
   async receive(message: any): Promise<void> {
     const text = (value: unknown, max = 2000) => typeof value === 'string' && value.length <= max ? value : undefined;
     try {
       switch (message?.type) {
         case 'ready': this.ready = true; this.post(); return;
+        case 'probe': this.probes.get(message.id)?.(message.result); this.probes.delete(message.id); return;
         case 'select': { const path = text(message.path); if (path) { this.selected = path; this.post(); this.reveal(); } return; }
         case 'openXml': await vscode.window.showTextDocument(this.document, { viewColumn: vscode.ViewColumn.Beside }); return;
         case 'preview': await vscode.commands.executeCommand('rdlPreview.preview', this.document.uri); return;
@@ -94,9 +103,13 @@ export class Designer {
         case 'set': {
           const path = text(message.path), key = text(message.key, 100);
           if (!path || !key) return;
-          if (!this.current(message.version)) { void this.panel.webview.postMessage({ type: 'fieldError', key, message: 'The report changed while you were editing. Check the value and try again.' }); return; }
-          try { await this.apply(applyField(analysisOf(this.document), path, key, message.value)); }
-          catch (error) { void this.panel.webview.postMessage({ type: 'fieldError', key, message: error instanceof Error ? error.message : String(error) }); }
+          // A table edit made before the previous one came back is based on that edit, not on this version.
+          const unchanged = () => message.base !== undefined && JSON.stringify(describe(analysisOf(this.document), path)?.fields.find(f => f.key === key)?.value) === JSON.stringify(message.base);
+          await this.serially(async () => {
+            if (!this.current(message.version, unchanged)) { void this.panel.webview.postMessage({ type: 'fieldError', key, message: 'The report changed while you were editing. Check the value and try again.' }); return; }
+            try { await this.apply(applyField(analysisOf(this.document), path, key, message.value)); }
+            catch (error) { void this.panel.webview.postMessage({ type: 'fieldError', key, message: error instanceof Error ? error.message : String(error) }); }
+          });
           return;
         }
         case 'action': {
@@ -104,7 +117,7 @@ export class Designer {
           if (!path || !id || !this.current(message.version)) return;
           const input = await this.actionInput(path, id);
           if (input === null) return;
-          await this.apply(applyAction(analysisOf(this.document), path, id, input));
+          await this.serially(() => this.apply(applyAction(analysisOf(this.document), path, id, input)));
           return;
         }
       }
@@ -112,9 +125,9 @@ export class Designer {
       void vscode.window.showErrorMessage(`RDL Designer: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
-  private current(version: unknown): boolean {
+  private current(version: unknown, unchanged?: () => boolean): boolean {
     if (readOnlyReason(analysisOf(this.document))) return false;
-    if (version === this.document.version) return true;
+    if (version === this.document.version || unchanged?.()) return true;
     this.post();
     return false;
   }
@@ -143,6 +156,12 @@ export class Designer {
       return choice === 'Delete' ? undefined : null;
     }
     return undefined;
+  }
+  /** Applies edits one at a time, so each is computed from the text the one before produced. */
+  private serially(task: () => Promise<void>): Promise<void> {
+    const run = this.editing.then(task);
+    this.editing = run.catch(() => undefined);
+    return run;
   }
   private async apply(change: Change): Promise<void> {
     if (change.edits.length) {

@@ -17,7 +17,7 @@ In every level, the `.rdl` text is the only source of truth. Nothing keeps a sep
 - The `rdl` language is registered for `.rdl` and `.rdlc`. Before this, `.rdl` opened as XML only when it started with `<?xml`, and as plain text otherwise.
 - The grammar (`language/rdl.tmLanguage.json`) includes VS Code's built-in `text.xml` grammar. On top of that, it highlights element text that starts with `=` as an expression: VB string literals, comments, keywords, function calls, numbers, operators (including `&amp;` concatenation) and `Parameters!`/`Fields!`/`ReportItems!`/`Globals!`/`User!`/`Variables!`/`DataSets!`/`DataSources!` references.
 - The language configuration copies the XML one, so comments, brackets and auto-closing behave the same.
-- `xmlLanguageParticipants` keeps Red Hat's XML extension (schema validation, tag completion, formatting) working on the `rdl` language.
+- `xmlLanguageParticipants` keeps Red Hat's XML extension (schema validation, tag completion, formatting) working on the `rdl` language. Red Hat XML only activates for its own languages, so RDL Preview activates it when an `rdl` document opens. It's optional: nothing in RDL Preview depends on it.
 - Language features also work on `.rdl`/`.rdlc` files that a user has mapped to the `xml` language through `files.associations`.
 
 ### Features

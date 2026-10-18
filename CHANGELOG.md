@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Opening an RDL file now starts the Red Hat XML extension when it's installed, so its formatting and validation work without an `.xml` file open. RDL features don't require it.
+- Fix the designer's value tables (available values, default values, query parameters) not showing an added or removed row until the form was rebuilt. Rows now update at once, focus moves to the new row or the row that takes a removed one's place, and an edit made before the previous one is applied builds on it instead of on stale rows.
+
 ## 0.2.0 — 2026-10-17
 
 - **RDL Designer**: open an RDL file with **Open Designer** to edit it through an outline tree and property forms beside the XML. Edits report and page settings, parameters with available and default values, data sources, datasets, query parameters, fields, and common text box, image, rectangle, table and subreport properties. Adds and deletes report objects, keeps RDL 2016 parameter layouts valid, and shows a to-scale drawing of the page. Changes are ordinary text edits, so Undo, Save and source control work as usual.

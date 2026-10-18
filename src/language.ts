@@ -21,7 +21,22 @@ export function analysisOf(document: vscode.TextDocument): Analysis {
   return analysis;
 }
 
+// Red Hat XML serves RDL through the xmlLanguageParticipants contribution but only activates for its own
+// languages. Start it when an RDL document is open so it formats and validates without an .xml file open.
+const RED_HAT_XML = 'redhat.vscode-xml';
+function startXmlSupport(context: vscode.ExtensionContext): void {
+  const start = () => {
+    const xml = vscode.extensions.getExtension(RED_HAT_XML);
+    if (!xml || xml.isActive || !vscode.workspace.textDocuments.some(d => d.languageId === 'rdl')) return;
+    // Optional: RDL features don't depend on it, and it reports its own startup problems.
+    xml.activate().then(undefined, () => undefined);
+  };
+  start();
+  context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(document => { if (document.languageId === 'rdl') start(); }), vscode.extensions.onDidChange(start));
+}
+
 export function registerLanguage(context: vscode.ExtensionContext): void {
+  startXmlSupport(context);
   const range = (document: vscode.TextDocument, start: number, end: number) => new vscode.Range(document.positionAt(start), document.positionAt(end));
   const symbol = (document: vscode.TextDocument, item: OutlineItem): vscode.DocumentSymbol => {
     const result = new vscode.DocumentSymbol(item.name, item.detail, KINDS[item.kind], range(document, item.start, item.end), range(document, item.selectionStart, item.selectionEnd));

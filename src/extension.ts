@@ -96,6 +96,6 @@ export function activate(context: vscode.ExtensionContext) {
   for (const [command, handler] of Object.entries({ preview, manageProfiles: () => connections.manage(), switchProfile: () => connections.switch(), testConnection, demo, openDesigner, openXml, validate })) context.subscriptions.push(vscode.commands.registerCommand(`rdlPreview.${command}`, guard(handler)));
   context.subscriptions.push({ dispose: () => { current?.dispose(); remembered.clear(); } });
   if (context.extensionMode !== vscode.ExtensionMode.Test) return;
-  return { designer: () => designers.active && { snapshot: () => designers.active!.snapshot(), send: (message: unknown) => designers.active!.receive(message) }, snapshot: () => current?.snapshot(), render: (values: ParameterValues) => current?.submit(values, true), selectEnvironment: (id: string) => current?.selectEnvironment(id), disposePreview: () => { current?.dispose(); current = undefined; } };
+  return { designer: () => designers.active && { snapshot: () => designers.active!.snapshot(), send: (message: unknown) => designers.active!.receive(message), probe: (steps: unknown[]) => designers.active!.probe(steps) }, snapshot: () => current?.snapshot(), render: (values: ParameterValues) => current?.submit(values, true), selectEnvironment: (id: string) => current?.selectEnvironment(id), disposePreview: () => { current?.dispose(); current = undefined; } };
 }
 export function deactivate(): void {}

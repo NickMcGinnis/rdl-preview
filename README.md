@@ -40,7 +40,7 @@ The viewer supports page navigation, zoom and **Save PDF**. The inline preview i
 - Completion after `Parameters!`, `Fields!`, `ReportItems!`, `Globals!` and similar, **Go to Definition** from a reference to its declaration, and **Rename Symbol** (F2), which updates every reference.
 - Folding for every multi-line element, and snippets starting with `rdl-` for parameters, data sources, datasets, fields, query parameters and textboxes.
 
-If the Red Hat XML extension is installed, its features (formatting, tag completion, and schema validation once you associate the RDL XSD) still work on RDL files.
+If the Red Hat XML extension is installed, its features (formatting, tag completion, and schema validation once you associate the RDL XSD) still work on RDL files. Opening an RDL file starts it, including in Restricted Mode.
 
 ### Designer
 
@@ -145,7 +145,7 @@ npm run test:extension  # VS Code extension-host test
 npm run package
 ```
 
-Press **F5** to launch an Extension Development Host. The extension-host test downloads VS Code and uses a temporary profile; on Linux run it under `xvfb-run -a`, and set `VSCODE_EXECUTABLE_PATH` to reuse an existing install. To open the webview in a browser, build and then run `node --import tsx scripts/ui-harness.mts`.
+Press **F5** to launch an Extension Development Host. The extension-host test downloads VS Code and uses a temporary profile; on Linux run it under `xvfb-run -a`, and set `VSCODE_EXECUTABLE_PATH` to reuse an existing install. Run `npm run build` first; the test loads `dist/extension.js`. A second run installs Red Hat XML from the Marketplace and checks it in Restricted Mode; set `SKIP_XML_TEST=1` to skip it offline. To open the webview in a browser, build and then run `node --import tsx scripts/ui-harness.mts`.
 
 See also [architecture](docs/ARCHITECTURE.md), [RDL editing](docs/EDITOR.md) and [manual testing](docs/MANUAL-TESTING.md).
 

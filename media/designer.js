@@ -10,7 +10,7 @@ const element = (tag, props = {}, ...children) => { const e = Object.assign(docu
 
 window.addEventListener('message', ({ data }) => {
   if (data?.type === 'state') render(data);
-  else if (data?.type === 'fieldError') { errors.set(data.key, data.message); showErrors(); }
+  else if (data?.type === 'fieldError') { $('form').querySelector(`[data-key="${CSS.escape(data.key)}"]`)?.revert?.(); errors.set(data.key, data.message); showErrors(); }
 });
 $('open-xml').addEventListener('click', () => post({ type: 'openXml' }));
 $('preview').addEventListener('click', () => post({ type: 'preview' }));
@@ -19,6 +19,27 @@ $('form').addEventListener('submit', event => event.preventDefault());
 let drawnWidth = 0;
 new ResizeObserver(() => { if (state && $('wireframe').clientWidth !== drawnWidth) wireframe(); }).observe($('wireframe'));
 post({ type: 'ready' });
+// Extension-host tests drive the real controls through this. Only test builds mark the page.
+if (document.body.dataset.test !== undefined) window.addEventListener('message', ({ data }) => {
+  if (data?.type !== 'probe') return;
+  const find = selector => { const e = document.querySelector(selector); if (!e) throw new Error(`No element matches ${selector}`); return e; };
+  let error = '';
+  try {
+    for (const step of data.steps) {
+      const target = find(step.selector);
+      if (step.click) { target.focus(); target.click(); }
+      if (step.focus) target.focus();
+      if (step.type !== undefined) { target.focus(); target.value = step.type; target.dispatchEvent(new Event('input', { bubbles: true })); }
+      if (step.caret !== undefined) target.setSelectionRange(step.caret, step.caret);
+      if (step.mark) target.dataset.mark = step.mark;
+      if (step.change) target.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  } catch (e) { error = e.message; }
+  const active = document.activeElement, table = active?.closest('.table'), tr = active?.closest('tbody tr');
+  const tables = Object.fromEntries([...document.querySelectorAll('#form .table')].map(t => [t.dataset.key, [...t.querySelectorAll('tbody tr')].map(r => [...r.querySelectorAll('input')].map(i => i.value))]));
+  const focus = table ? { table: table.dataset.key, row: tr ? [...tr.parentElement.rows].indexOf(tr) : -1, control: tr ? [...tr.querySelectorAll('input, button')].indexOf(active) : -1, add: active === table.querySelector(':scope > button'), value: active.value, caret: active.selectionStart, mark: active.dataset.mark } : { tag: active?.tagName };
+  post({ type: 'probe', id: data.id, result: { error, version: state?.version, tables, focus } });
+});
 
 function select(path) { if (state && path !== state.selected) { errors.clear(); post({ type: 'select', path }); } }
 function render(next) {
@@ -129,7 +150,7 @@ function details() {
   if (focused) form.querySelector(`[data-key="${CSS.escape(focused)}"]`)?.focus();
   showErrors();
 }
-function send(field, value) { errors.delete(field.key); showErrors(); post({ type: 'set', path: state.selected, key: field.key, value, version: state.version }); }
+function send(field, value, base) { errors.delete(field.key); showErrors(); post({ type: 'set', path: state.selected, key: field.key, value, base, version: state.version }); }
 function control(field, disabled) {
   const id = `field-${field.key}`;
   const wrapper = element('div', { className: `field type-${field.type}` });
@@ -181,30 +202,56 @@ function withHint(wrapper, field, input) {
   wrapper.append(hint, error);
   return wrapper;
 }
+// Rows show the extension's last values plus edits sent since, so add and remove show at once and
+// each edit builds on the one before it. Rows are reconciled in place to keep focus and the caret.
 function table(field, id, disabled) {
   const container = element('div', { className: 'table', id, tabIndex: -1 });
   container.setAttribute('role', 'group');
   container.setAttribute('aria-label', field.label);
-  const rows = () => [...container.querySelectorAll('tbody tr')].map(tr => [...tr.querySelectorAll('input')].map(i => i.value));
+  const copy = values => values.map(row => [...row]);
+  let confirmed = copy(field.value), shown = confirmed;
+  const edited = new WeakSet();
   const head = element('tr', {}, ...field.columns.map(c => element('th', { scope: 'col', textContent: c.label })), element('th', {}, element('span', { className: 'visually-hidden', textContent: 'Remove' })));
   const body = element('tbody');
-  const fill = values => {
-    body.replaceChildren(...values.map((row, r) => element('tr', {}, ...row.map((cell, c) => {
-      const input = element('input', { type: 'text', value: cell, disabled, placeholder: field.columns[c].placeholder || '', className: field.columns[c].code ? 'code' : '', spellcheck: false });
-      input.setAttribute('aria-label', `${field.columns[c].label}, row ${r + 1}`);
-      input.addEventListener('change', () => send(field, rows()));
-      return element('td', {}, input);
-    }), element('td', {}, (() => {
-      const remove = element('button', { type: 'button', className: 'icon secondary', textContent: '✕', disabled, title: 'Remove row' });
-      remove.setAttribute('aria-label', `Remove row ${r + 1}`);
-      remove.addEventListener('click', () => send(field, rows().filter((_, i) => i !== r)));
-      return remove;
-    })()))));
-  };
-  fill(field.value);
-  container.update = values => { if (!container.contains(document.activeElement)) fill(values); };
   const add = element('button', { type: 'button', className: 'secondary', textContent: 'Add row', disabled });
-  add.addEventListener('click', () => send(field, [...rows(), field.columns.map(() => '')]));
+  const indexOf = node => [...body.rows].indexOf(node.closest('tr'));
+  // The extension accepts the change if the table still holds what this one was based on.
+  const commit = next => { const base = shown; shown = next; reconcile(); send(field, next, base); };
+  const row = () => element('tr', {}, ...field.columns.map((column, c) => {
+    const input = element('input', { type: 'text', disabled, placeholder: column.placeholder || '', className: column.code ? 'code' : '', spellcheck: false });
+    input.addEventListener('input', () => edited.add(input));
+    input.addEventListener('change', () => {
+      edited.delete(input);
+      const r = indexOf(input);
+      commit(shown.map((cells, i) => i === r ? cells.map((cell, j) => j === c ? input.value : cell) : cells));
+    });
+    return element('td', {}, input);
+  }), element('td', {}, (() => {
+    const remove = element('button', { type: 'button', className: 'icon secondary', textContent: '✕', disabled, title: 'Remove row' });
+    remove.addEventListener('click', () => { const r = indexOf(remove); commit(shown.filter((_, i) => i !== r)); });
+    return remove;
+  })()));
+  function reconcile() {
+    const active = document.activeElement, focusRow = container.contains(active) ? indexOf(active) : -1;
+    const focusControl = focusRow >= 0 ? [...body.rows[focusRow].querySelectorAll('input, button')].indexOf(active) : -1;
+    while (body.rows.length > shown.length) body.lastElementChild.remove();
+    while (body.rows.length < shown.length) body.append(row());
+    [...body.rows].forEach((tr, r) => {
+      tr.querySelectorAll('input').forEach((input, c) => {
+        // Leave text the user is typing alone.
+        if ((input !== active || !edited.has(input)) && input.value !== shown[r][c]) input.value = shown[r][c];
+        input.setAttribute('aria-label', `${field.columns[c].label}, row ${r + 1}`);
+      });
+      tr.querySelector('button').setAttribute('aria-label', `Remove row ${r + 1}`);
+    });
+    // The focused row was removed: move to the same control in the row before it, else to Add row.
+    if (focusRow >= 0 && !active.isConnected) (body.rows[Math.min(focusRow, shown.length - 1)]?.querySelectorAll('input, button')[focusControl] || add).focus();
+  }
+  reconcile();
+  add.addEventListener('click', () => { commit([...shown, field.columns.map(() => '')]); body.lastElementChild.querySelector('input').focus(); });
+  container.update = values => { confirmed = shown = copy(values); reconcile(); };
+  // The extension rejected an edit: show what the report holds.
+  container.revert = () => { shown = confirmed; reconcile(); };
   container.append(element('table', {}, element('thead', {}, head), body), add);
   return container;
 }
@@ -216,8 +263,8 @@ function updateValues(d) {
     const input = wrapper.querySelector(`[data-key="${CSS.escape(field.key)}"]`);
     const hint = wrapper.querySelector('.hint');
     if (hint) { hint.textContent = field.hint || ''; hint.hidden = !field.hint; }
-    if (!input || input === document.activeElement) continue;
-    if (field.type === 'table') input.update(field.value);
+    if (field.type === 'table') input?.update(field.value);
+    else if (!input || input === document.activeElement) continue;
     else if (field.type === 'checkbox') input.checked = String(field.value).toLowerCase() === 'true';
     else input.value = field.value;
   }
